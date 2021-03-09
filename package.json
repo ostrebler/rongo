@@ -1,0 +1,42 @@
+{
+  "name": "rongo",
+  "version": "0.0.1",
+  "description": "A relational crutch for MongoDB",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/test.js",
+    "prepare": "yarn build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ostrebler/rongo.git"
+  },
+  "keywords": [
+    "Mongo",
+    "MongoDB",
+    "ORM",
+    "relation",
+    "graph",
+    "node",
+    "foreign",
+    "key",
+    "primary",
+    "link",
+    "SQL"
+  ],
+  "author": "ostrebler",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ostrebler/rongo/issues"
+  },
+  "homepage": "https://github.com/ostrebler/rongo#readme",
+  "dependencies": {
+    "mongodb": "^3.6.4",
+    "typescript": "^4.2.3"
+  },
+  "devDependencies": {
+    "@types/mongodb": "^3.6.9"
+  }
+}
