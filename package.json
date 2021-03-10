@@ -1,12 +1,12 @@
 {
-  "name": "rongo",
+  "name": "rongo.js",
   "version": "0.0.1",
   "description": "A relational crutch for MongoDB",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "node dist/test.js",
+    "test": "tsc & node dist/test.js",
     "prepare": "yarn build"
   },
   "repository": {
