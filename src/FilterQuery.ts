@@ -45,6 +45,7 @@ type MongoAltQuery<T> = T extends ReadonlyArray<infer U>
 export type QuerySelector<T> = {
   // RONGO PATCH
   $$in?: FilterQuery<any>;
+  $$nin?: FilterQuery<any>;
   // END PATCH
   // Comparison
   $eq?: T;
