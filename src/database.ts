@@ -1,5 +1,5 @@
 import { Db, DbCollectionOptions, MongoClient } from "mongodb";
-import { Collection, schemaToGraph } from ".";
+import { Collection, DocumentT, schemaToGraph } from ".";
 
 export type Graph = {
   [collection: string]: CollectionConfig;
@@ -75,7 +75,7 @@ export class Database {
     this.graph = schemaToGraph(schema);
   }
 
-  collection<T extends object>(
+  collection<T extends DocumentT>(
     name: string,
     options: DbCollectionOptions = {}
   ) {
