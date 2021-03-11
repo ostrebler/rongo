@@ -3,6 +3,7 @@ import { entries, fromPairs, isArray, isPlainObject, isString } from "lodash";
 import {
   Collection,
   CollectionConfig,
+  DocumentT,
   FilterQuery,
   Graph,
   RemovePolicy,
@@ -127,39 +128,56 @@ export function stackToKey(stack: Array<string | number>) {
   return stack.filter(key => isString(key) && !key.startsWith("$")).join(".");
 }
 
+// This function returns a list of possible foreign keys given a collection, one of its foreign key,
+// and a filter query for the foreign collection
+
+export async function findForeignKeys<T>(
+  collection: Collection<T>,
+  foreignKey: string,
+  foreignQuery: FilterQuery<any>
+) {
+  const database = collection.database;
+  // Get the foreign key config
+  const foreignKeyConfig = database.graph[collection.name].foreign[foreignKey];
+  if (!foreignKeyConfig)
+    throw new Error(
+      `No foreign key is set for <${foreignKey}> in collection <${collection.name}>`
+    );
+  // Get the primary keys of the targeted foreign documents :
+  const foreignCol = database.collection(foreignKeyConfig.collection);
+  return foreignCol.findMap(
+    await normalizeFilterQuery(foreignCol, foreignQuery),
+    database.graph[foreignKeyConfig.collection].primary
+  );
+}
+
 // This function transforms an augmented FilterQuery into a traditional FilterQuery
 
-export async function normalizeFilterQuery<T extends object>(
+export async function normalizeFilterQuery<T extends DocumentT>(
   collection: Collection<T>,
   query: FilterQuery<T>
 ): Promise<FilterQueryBase<T>> {
-  return cloneOperator(query, async (value, stack) => {
-    // If there is a $$nin operation :
-    if (value && value.$$in) {
-      const { $$in, $in, ...props } = value;
+  const customizer: Customizer = async (value, stack) => {
+    if (isPlainObject(value)) {
+      let { $in, $$in, $nin, $$nin, ...props } = value;
 
-      // Get the foreign key config of the current stack
-      const foreignKey = stackToKey(stack);
-      const foreignKeyConfig =
-        collection.database.graph[collection.name].foreign[foreignKey];
-      if (!foreignKeyConfig)
-        throw new Error(
-          `No foreign key is set for <${foreignKey}> in collection <${collection.name}>`
-        );
+      if ($$in)
+        $in = [
+          ...($in ? $in : []),
+          ...(await findForeignKeys(collection, stackToKey(stack), $$in))
+        ];
+      if ($$nin)
+        $nin = [
+          ...($nin ? $nin : []),
+          ...(await findForeignKeys(collection, stackToKey(stack), $$nin))
+        ];
 
-      // Get the primary keys of the targeted foreign documents :
-      const foreignCol = collection.database.collection(
-        foreignKeyConfig.collection
-      );
-      const keys = await foreignCol.findMap(
-        await normalizeFilterQuery(foreignCol, $$in),
-        collection.database.graph[foreignKeyConfig.collection].primary
-      );
       return {
-        $in: [...($in ? $in : []), ...keys],
-        ...props
+        ...(await cloneOperator(props, customizer)),
+        ...($in && { $in }),
+        ...($nin && { $nin })
       };
     }
-    return undefined;
-  });
+  };
+  return cloneOperator(query, customizer);
 }
