@@ -158,7 +158,7 @@ export async function normalizeFilterQuery<T extends DocumentT>(
   query: FilterQuery<T>
 ): Promise<FilterQueryBase<T>> {
   const customizer: Customizer = async (value, stack) => {
-    if (isPlainObject(value)) {
+    if (isPlainObject(value) && (value.$$in || value.$$nin)) {
       let { $in, $$in, $nin, $$nin, ...props } = value;
 
       if ($$in)
@@ -173,7 +173,7 @@ export async function normalizeFilterQuery<T extends DocumentT>(
         ];
 
       return {
-        ...(await cloneOperator(props, customizer)),
+        ...props,
         ...($in && { $in }),
         ...($nin && { $nin })
       };

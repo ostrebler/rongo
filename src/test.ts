@@ -1,4 +1,9 @@
-import rongo, { FilterQuery, ObjectId, RemovePolicy } from ".";
+import rongo, {
+  FilterQuery,
+  normalizeFilterQuery,
+  ObjectId,
+  RemovePolicy
+} from ".";
 
 async function test() {
   rongo.connect("mongodb://localhost:27017", "rongo_test");
@@ -117,9 +122,9 @@ async function test() {
     ]
   };
 
-  /*console.log(
+  console.log(
     JSON.stringify(await normalizeFilterQuery(Author, filter), null, 2)
-  );*/
+  );
 
   console.log(
     await Book.find({
