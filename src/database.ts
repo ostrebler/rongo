@@ -1,5 +1,5 @@
 import { Db, DbCollectionOptions, MongoClient } from "mongodb";
-import { Collection, processSchema } from ".";
+import { Collection, schemaToGraph } from ".";
 
 export type Graph = {
   [collection: string]: CollectionConfig;
@@ -19,6 +19,7 @@ export type ForeignKeysConfig = {
 
 export type ForeignKeyConfig = {
   collection: string;
+  path: string;
   nullable: boolean;
   optional: boolean;
   onRemove: RemovePolicy;
@@ -28,7 +29,12 @@ export type Schema = {
   [collection: string]: {
     primary?: string;
     foreign?: {
-      [foreignKey: string]: Partial<ForeignKeyConfig>;
+      [foreignKeyPath: string]: {
+        collection?: string;
+        nullable?: boolean;
+        optional?: boolean;
+        onRemove?: RemovePolicy;
+      };
     };
   };
 };
@@ -66,7 +72,7 @@ export class Database {
   }
 
   schema(schema: Schema) {
-    this.graph = processSchema(schema);
+    this.graph = schemaToGraph(schema);
   }
 
   collection<T extends object>(

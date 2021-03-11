@@ -4,12 +4,15 @@ import {
   CollectionInsertManyOptions,
   CollectionInsertOneOptions,
   DbCollectionOptions,
+  FindOneOptions,
   MongoCountPreferences,
   OptionalId
 } from "mongodb";
+import { map } from "lodash";
 import { Database, FilterQuery } from ".";
 
 export class Collection<T extends object> {
+  database: Database;
   name: string;
   handle: Promise<Col<T>>;
 
@@ -18,6 +21,7 @@ export class Collection<T extends object> {
     name: string,
     options: DbCollectionOptions = {}
   ) {
+    this.database = database;
     this.name = name;
     this.handle = database.handle.then(db => db.collection<T>(name, options));
   }
@@ -29,6 +33,26 @@ export class Collection<T extends object> {
     return this.handle.then(col =>
       col.aggregate<U>(pipeline, options).toArray()
     );
+  }
+
+  // Query methods :
+
+  find<U = T>(
+    query: FilterQuery<T>,
+    options?: FindOneOptions<U extends T ? T : U>
+  ) {
+    return this.handle.then(col => col.find(query, options ?? {}).toArray());
+  }
+
+  findMap<U = T>(
+    query: FilterQuery<T>,
+    key: keyof U,
+    options?: FindOneOptions<U extends T ? T : U>
+  ) {
+    return this.find(query, {
+      ...options,
+      fields: { [key]: 1 } as any
+    }).then(array => map(array, key));
   }
 
   count(query?: FilterQuery<T>, options?: MongoCountPreferences) {

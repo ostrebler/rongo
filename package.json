@@ -33,6 +33,8 @@
   },
   "homepage": "https://github.com/ostrebler/rongo#readme",
   "dependencies": {
+    "@types/lodash": "^4.14.168",
+    "lodash": "^4.17.21",
     "mongodb": "^3.6.4",
     "typescript": "^4.2.3"
   },

@@ -1,4 +1,9 @@
-import rongo, { ObjectId, RemovePolicy } from ".";
+import rongo, {
+  FilterQuery,
+  normalizeFilterQuery,
+  ObjectId,
+  RemovePolicy
+} from ".";
 
 async function test() {
   rongo.connect("mongodb://localhost:27017", "rongo_test");
@@ -10,6 +15,7 @@ async function test() {
     _id: ObjectId;
     age: number;
     name: string;
+    favoriteBooks: Array<ObjectId>;
   };
 
   type BookDb = {
@@ -46,27 +52,28 @@ async function test() {
     }
   });
 
-  console.log(JSON.stringify(rongo._database.graph, null, 2));
-
   const Author = rongo<AuthorDb>("Author");
   const Book = rongo<BookDb>("Book");
 
   const [kevin, denis, jack] = await Author.insertMany([
     {
       age: 32,
-      name: "Kevin"
+      name: "Kevin",
+      favoriteBooks: []
     },
     {
       age: 63,
-      name: "Denis"
+      name: "Denis",
+      favoriteBooks: []
     },
     {
       age: 50,
-      name: "Jack"
+      name: "Jack",
+      favoriteBooks: []
     }
   ]);
 
-  const [book1, book2, book3, book4] = await Book.insertMany([
+  const [book1, book2] = await Book.insertMany([
     {
       title: "Book 1",
       previous: null,
@@ -76,20 +83,48 @@ async function test() {
       title: "Book 2",
       previous: null,
       author: denis._id
-    },
+    }
+  ]);
+
+  const [book3, book4, book5] = await Book.insertMany([
     {
       title: "Book 3",
-      previous: null,
+      previous: book2._id,
       author: denis._id
     },
     {
       title: "Book 4",
       previous: null,
       author: jack._id
+    },
+    {
+      title: "Book 5",
+      previous: book1._id,
+      author: jack._id
     }
   ]);
+
+  const filter: FilterQuery<AuthorDb> = {
+    $and: [
+      {
+        age: { $lt: 40 },
+        favoriteBooks: {
+          $$in: {
+            previous: null
+          }
+        }
+      }
+    ]
+  };
+
+  console.log(
+    JSON.stringify(await normalizeFilterQuery(Author, filter), null, 2)
+  );
 }
 
 test()
-  .then(() => console.log("Test done."))
+  .then(() => {
+    console.log("Test done.");
+    process.exit();
+  })
   .catch(e => console.error("Error:", e.message));

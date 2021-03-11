@@ -1,6 +1,8 @@
 import { DbCollectionOptions } from "mongodb";
 import { Database, Schema } from ".";
 
+// A handy wrapper around Database
+
 export function rongo<T extends object>(
   collection: string,
   options: DbCollectionOptions = {}
