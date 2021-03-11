@@ -1,9 +1,4 @@
-import rongo, {
-  FilterQuery,
-  normalizeFilterQuery,
-  ObjectId,
-  RemovePolicy
-} from ".";
+import rongo, { FilterQuery, ObjectId, RemovePolicy } from ".";
 
 async function test() {
   rongo.connect("mongodb://localhost:27017", "rongo_test");
@@ -21,7 +16,8 @@ async function test() {
   type BookDb = {
     _id: ObjectId;
     title: string;
-    previous: ObjectId | null;
+    previousBook: ObjectId | null;
+    nextBook?: ObjectId;
     author: ObjectId;
   };
 
@@ -76,12 +72,12 @@ async function test() {
   const [book1, book2] = await Book.insertMany([
     {
       title: "Book 1",
-      previous: null,
+      previousBook: null,
       author: kevin._id
     },
     {
       title: "Book 2",
-      previous: null,
+      previousBook: null,
       author: denis._id
     }
   ]);
@@ -89,17 +85,18 @@ async function test() {
   const [book3, book4, book5] = await Book.insertMany([
     {
       title: "Book 3",
-      previous: book2._id,
+      previousBook: book1._id,
       author: denis._id
     },
     {
       title: "Book 4",
-      previous: null,
+      previousBook: null,
+      nextBook: book2._id,
       author: jack._id
     },
     {
       title: "Book 5",
-      previous: book1._id,
+      previousBook: book1._id,
       author: jack._id
     }
   ]);
@@ -110,15 +107,28 @@ async function test() {
         age: { $lt: 40 },
         favoriteBooks: {
           $$in: {
-            previous: null
+            previousBook: null
+          },
+          $$nin: {
+            previousBook: book1._id
           }
         }
       }
     ]
   };
 
-  console.log(
+  /*console.log(
     JSON.stringify(await normalizeFilterQuery(Author, filter), null, 2)
+  );*/
+
+  console.log(
+    await Book.find({
+      previousBook: {
+        $$in: {
+          author: kevin._id
+        }
+      }
+    })
   );
 }
 
