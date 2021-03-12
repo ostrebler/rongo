@@ -26,7 +26,7 @@ async function test() {
   const Author = rongo<AuthorDb>("Author");
   const Book = rongo<BookDb>("Book");
 
-  const [kevin, denis, jack] = await Author.insertMany([
+  const [kevin, denis, jack] = await Author.insert([
     {
       age: 32,
       name: "Kevin",
@@ -44,7 +44,7 @@ async function test() {
     }
   ]);
 
-  const [book1, book2] = await Book.insertMany([
+  const [book1, book2] = await Book.insert([
     {
       title: "Book 1",
       previousBook: null,
@@ -57,7 +57,7 @@ async function test() {
     }
   ]);
 
-  const [book3, book4, book5] = await Book.insertMany([
+  const [book3, book4, book5] = await Book.insert([
     {
       title: "Book 3",
       previousBook: book1._id,
@@ -81,10 +81,7 @@ async function test() {
       {
         age: { $lt: 40 },
         favoriteBooks: {
-          $$in: {
-            previousBook: null
-          },
-          $$nin: {
+          $$eq: {
             previousBook: book1._id
           }
         }

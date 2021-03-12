@@ -1,7 +1,12 @@
-import { Db, DbCollectionOptions, MongoClient } from "mongodb";
+import {
+  Db,
+  DbCollectionOptions,
+  MongoClient,
+  MongoClientOptions
+} from "mongodb";
 import { readFileSync } from "fs";
 import { isString } from "lodash";
-import { Collection, DocumentT, schemaToGraph } from ".";
+import { buildGraph, Collection, Document } from ".";
 
 export type Graph = {
   [collection: string]: CollectionConfig;
@@ -20,8 +25,8 @@ export type ForeignKeysConfig = {
 };
 
 export type ForeignKeyConfig = {
-  collection: string;
   path: string;
+  collection: string;
   nullable: boolean;
   optional: boolean;
   onDelete: DeletePolicy;
@@ -65,21 +70,22 @@ export class Database {
     });
   }
 
-  async connect(url: string, name: string) {
+  async connect(url: string, name: string, options?: MongoClientOptions) {
     this.name = name;
     const client = await MongoClient.connect(url, {
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      ...options
     });
     this._resolveHandle(client.db(name));
   }
 
   schema(schema: Schema | string) {
-    this.graph = schemaToGraph(
+    this.graph = buildGraph(
       isString(schema) ? JSON.parse(readFileSync(schema).toString()) : schema
     );
   }
 
-  collection<T extends DocumentT>(
+  collection<T extends Document>(
     name: string,
     options: DbCollectionOptions = {}
   ) {

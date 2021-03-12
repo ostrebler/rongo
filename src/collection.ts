@@ -6,19 +6,23 @@ import {
   DbCollectionOptions,
   FindOneOptions,
   MongoCountPreferences,
-  OptionalId
+  WithId
 } from "mongodb";
-import { get, map } from "lodash";
+import { get, isArray, map } from "lodash";
 import {
   createDefaultConfig,
   Database,
   FilterQuery,
-  normalizeFilterQuery
+  InsertionDoc,
+  normalizeFilterQuery,
+  normalizeInsertionDoc
 } from ".";
 
-export type DocumentT = Record<string, any>;
+export type Document = {
+  [key: string]: any;
+};
 
-export class Collection<T extends DocumentT> {
+export class Collection<T extends Document> {
   database: Database;
   name: string;
   handle: Promise<Col<T>>;
@@ -80,7 +84,7 @@ export class Collection<T extends DocumentT> {
     return map(array, key);
   }
 
-  async findOneMap<U = T, K extends keyof U = keyof U>(
+  async findOneGet<U = T, K extends keyof U = keyof U>(
     query: FilterQuery<T>,
     key: K,
     options?: FindOneOptions<U extends T ? T : U>
@@ -98,18 +102,31 @@ export class Collection<T extends DocumentT> {
 
   // Insert methods :
 
-  async insertOne(doc: OptionalId<T>, options?: CollectionInsertOneOptions) {
-    const col = await this.handle;
-    const result = await col.insertOne(doc, options);
-    return result.ops[0];
-  }
+  async insert(
+    doc: InsertionDoc<T>,
+    options?: CollectionInsertOneOptions
+  ): Promise<WithId<T>>;
 
-  async insertMany(
-    docs: Array<OptionalId<T>>,
+  async insert(
+    docs: Array<InsertionDoc<T>>,
     options?: CollectionInsertManyOptions
+  ): Promise<Array<WithId<T>>>;
+
+  async insert(
+    doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
+    options?: CollectionInsertOneOptions | CollectionInsertManyOptions
   ) {
     const col = await this.handle;
-    const result = await col.insertMany(docs, options);
-    return result.ops;
+    if (!isArray(doc)) {
+      const normalized = await normalizeInsertionDoc(this, doc);
+      const result = await col.insertOne(normalized, options);
+      return result.ops[0];
+    } else {
+      const normalized = await Promise.all(
+        doc.map(doc => normalizeInsertionDoc(this, doc))
+      );
+      const result = await col.insertMany(normalized, options);
+      return result.ops;
+    }
   }
 }
