@@ -8,7 +8,7 @@ import {
   MongoCountPreferences,
   WithId
 } from "mongodb";
-import { get, isArray, map } from "lodash";
+import { isArray, map } from "lodash";
 import {
   createDefaultConfig,
   Database,
@@ -36,6 +36,20 @@ export class Collection<T extends Document> {
     this.name = name;
     this.handle = database.handle.then(db => db.collection<T>(name, options));
     if (!(name in database.graph)) database.graph[name] = createDefaultConfig();
+  }
+
+  // Meta data :
+
+  get primaryKey() {
+    return this.database.graph[this.name].primaryKey;
+  }
+
+  get foreignKeys() {
+    return this.database.graph[this.name].foreignKeys;
+  }
+
+  get references() {
+    return this.database.graph[this.name].references;
   }
 
   // Query methods :
@@ -77,27 +91,11 @@ export class Collection<T extends Document> {
     key: K,
     options?: FindOneOptions<U extends T ? T : U>
   ) {
-    const array = await this.find(query, {
+    const documents = await this.find(query, {
       ...options,
       fields: { [key]: 1 } as any
     });
-    return map(array, key);
-  }
-
-  async findOneGet<U = T, K extends keyof U = keyof U>(
-    query: FilterQuery<T>,
-    key: K,
-    options?: FindOneOptions<U extends T ? T : U>
-  ) {
-    const document = await this.findOne(query, {
-      ...options,
-      fields: { [key]: 1 } as any
-    });
-    if (document === null)
-      throw new Error(
-        `Could not find document in collection <${this.name}>.findOneMap`
-      );
-    return get(document, key) as U[K];
+    return map(documents, key);
   }
 
   // Insert methods :
@@ -111,6 +109,11 @@ export class Collection<T extends Document> {
     docs: Array<InsertionDoc<T>>,
     options?: CollectionInsertManyOptions
   ): Promise<Array<WithId<T>>>;
+
+  async insert(
+    doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
+    options?: CollectionInsertOneOptions | CollectionInsertManyOptions
+  ): Promise<WithId<T> | Array<WithId<T>>>;
 
   async insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,

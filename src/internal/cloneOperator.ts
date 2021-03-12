@@ -15,9 +15,8 @@ export async function cloneOperator(
   stack: Array<string | number> = [],
   parent: any = undefined
 ): Promise<any> {
-  const result = await customizer(operator, stack, parent);
-
   // If this iteration gets a custom value, return it
+  const result = await customizer(operator, stack, parent);
   if (result !== undefined) return result;
   // If the current value is an array, it simply gets mapped with recursive calls
   if (isArray(operator))

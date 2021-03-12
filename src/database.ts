@@ -13,9 +13,9 @@ export type Graph = {
 };
 
 export type CollectionConfig = {
-  primary: string;
-  foreign: ForeignKeysConfig;
-  reference: {
+  primaryKey: string;
+  foreignKeys: ForeignKeysConfig;
+  references: {
     [collection: string]: ForeignKeysConfig;
   };
 };

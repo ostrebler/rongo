@@ -79,7 +79,7 @@ let expr4: InsertionDoc<Book> = {
 let expr5: InsertionDoc<Book> = {
   _id: "1",
   related: {
-    $$insert: 5
+    $$insert: 5 // Error: Should fail
   },
   sameAuthor: {
     $$insert: [expr1]
@@ -88,6 +88,17 @@ let expr5: InsertionDoc<Book> = {
     inner: {
       $$insert: expr1
     }
+  }
+};
+
+let expr6: InsertionDoc<Book> = {
+  _id: "1",
+  related: {
+    $$insert: [] // Error: Should fail
+  },
+  sameAuthor: [],
+  nested: {
+    inner: new ObjectId()
   }
 };
 */

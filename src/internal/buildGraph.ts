@@ -1,5 +1,11 @@
 import { entries } from "lodash";
-import { createDefaultConfig, DeletePolicy, Graph, Schema } from "../.";
+import {
+  createDefaultConfig,
+  DeletePolicy,
+  ForeignKeyConfig,
+  Graph,
+  Schema
+} from "../.";
 
 // This function transforms a schema configuration into an exploitable internal dependency graph
 
@@ -13,15 +19,15 @@ export function buildGraph(schema: Schema) {
     const config = graph[collection];
 
     // Setup what we know regarding this collection at this point :
-    config.primary = partialConfig.primary ?? "_id";
-    config.foreign = Object.create(null);
+    config.primaryKey = partialConfig.primary ?? "_id";
+    config.foreignKeys = Object.create(null);
 
     // For each foreign key in the current collection :
     for (const [path, pathConfig] of entries(partialConfig.foreign ?? {})) {
       const foreignKey = path.replace(/(\.\$)+/g, "");
 
       // Create the config for the current foreign key :
-      const foreignKeyConfig = {
+      const foreignKeyConfig: ForeignKeyConfig = {
         path,
         collection: pathConfig.collection ?? collection,
         nullable: pathConfig.nullable ?? false,
@@ -46,15 +52,15 @@ export function buildGraph(schema: Schema) {
       }
 
       // Add the foreign key config to the current collection's config
-      config.foreign[foreignKey] = foreignKeyConfig;
+      config.foreignKeys[foreignKey] = foreignKeyConfig;
 
       // Now we need to set a reference on the target collection to this foreign key :
       const target = foreignKeyConfig.collection;
       if (!(target in graph)) graph[target] = createDefaultConfig();
-      const reference = graph[target].reference;
-      if (!(collection in reference))
-        reference[collection] = Object.create(null);
-      reference[collection][foreignKey] = foreignKeyConfig;
+      const references = graph[target].references;
+      if (!(collection in references))
+        references[collection] = Object.create(null);
+      references[collection][foreignKey] = foreignKeyConfig;
     }
   }
 

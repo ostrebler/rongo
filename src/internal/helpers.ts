@@ -8,9 +8,9 @@ export { ObjectId };
 
 export function createDefaultConfig(): CollectionConfig {
   return {
-    primary: "_id",
-    foreign: Object.create(null),
-    reference: Object.create(null)
+    primaryKey: "_id",
+    foreignKeys: Object.create(null),
+    references: Object.create(null)
   };
 }
 

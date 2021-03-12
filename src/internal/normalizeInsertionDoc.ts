@@ -1,5 +1,5 @@
 import { OptionalId } from "mongodb";
-import { isPlainObject } from "lodash";
+import { get, isArray, isPlainObject, map } from "lodash";
 import {
   cloneOperator,
   Collection,
@@ -8,37 +8,29 @@ import {
   stackToKey
 } from "../.";
 
-// This function inserts foreign document(s) and returns its/their primary key
-
-export async function insertForeignDoc<T>(
-  collection: Collection<T>,
-  foreignKey: string,
-  foreignDoc: InsertionDoc<any> | Array<InsertionDoc<any>>
-) {
-  type A = InsertionDoc<any>;
-
-  const database = collection.database;
-  // Get the foreign key config
-  const foreignKeyConfig = database.graph[collection.name].foreign[foreignKey];
-  if (!foreignKeyConfig)
-    throw new Error(
-      `No foreign key is set for <${foreignKey}> in collection <${collection.name}>`
-    );
-  // Insert the foreign doc(s)
-  const foreignCol = database.collection(foreignKeyConfig.collection);
-  const documents = await foreignCol.insert(foreignDoc);
-}
-
 // This function transforms an augmented insertion document into a simple insertion document
 
 export async function normalizeInsertionDoc<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T>
 ): Promise<OptionalId<T>> {
-  return cloneOperator(doc, async function customizer(value, stack) {
+  return cloneOperator(doc, async (value, stack) => {
     if (isPlainObject(value) && value.$$insert) {
       const key = stackToKey(stack);
-      return insertForeignDoc(collection, key, value.$$insert);
+      // Get the foreign key config
+      const foreignKeyConfig = collection.foreignKeys[key];
+      if (!foreignKeyConfig)
+        throw new Error(
+          `No foreign key is set for <${key}> in collection <${collection.name}>`
+        );
+      // Insert the foreign doc(s)
+      const foreignCol = collection.database.collection(
+        foreignKeyConfig.collection
+      );
+      const document = await foreignCol.insert(value.$$insert);
+      // Return the primary key(s)
+      if (!isArray(document)) return get(document, foreignCol.primaryKey);
+      return map(document, foreignCol.primaryKey);
     }
   });
 }

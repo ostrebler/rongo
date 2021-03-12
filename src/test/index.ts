@@ -1,4 +1,4 @@
-import rongo, { FilterQuery, normalizeFilterQuery, ObjectId } from "../.";
+import rongo, { ObjectId } from "../.";
 
 async function test() {
   rongo.connect("mongodb://localhost:27017", "rongo_test");
@@ -26,82 +26,36 @@ async function test() {
   const Author = rongo<AuthorDb>("Author");
   const Book = rongo<BookDb>("Book");
 
-  const [kevin, denis, jack] = await Author.insert([
-    {
-      age: 32,
-      name: "Kevin",
-      favoriteBooks: []
-    },
-    {
-      age: 63,
-      name: "Denis",
-      favoriteBooks: []
-    },
-    {
-      age: 50,
-      name: "Jack",
-      favoriteBooks: []
-    }
-  ]);
-
-  const [book1, book2] = await Book.insert([
-    {
-      title: "Book 1",
-      previousBook: null,
-      author: kevin._id
-    },
-    {
-      title: "Book 2",
-      previousBook: null,
-      author: denis._id
-    }
-  ]);
-
-  const [book3, book4, book5] = await Book.insert([
-    {
-      title: "Book 3",
-      previousBook: book1._id,
-      author: denis._id
-    },
-    {
-      title: "Book 4",
-      previousBook: null,
-      nextBook: book2._id,
-      author: jack._id
-    },
-    {
-      title: "Book 5",
-      previousBook: book1._id,
-      author: jack._id
-    }
-  ]);
-
-  const filter: FilterQuery<AuthorDb> = {
-    $and: [
-      {
-        age: { $lt: 40 },
-        favoriteBooks: {
-          $$eq: {
-            previousBook: book1._id
+  const b = await Book.insert({
+    title: "Harry Potter",
+    previousBook: null,
+    nextBook: undefined,
+    author: {
+      $$insert: {
+        age: 45,
+        name: "J.K. Rowling",
+        favoriteBooks: [
+          {
+            $$insert: {
+              title: "Da Vinci Code",
+              previousBook: null,
+              nextBook: undefined,
+              author: {
+                $$insert: {
+                  age: 60,
+                  name: "Dan Brown",
+                  favoriteBooks: []
+                }
+              }
+            }
           }
-        }
+        ]
       }
-    ]
-  };
+    }
+  });
 
-  console.log(
-    JSON.stringify(await normalizeFilterQuery(Author, filter), null, 2)
-  );
-
-  console.log(
-    await Book.find({
-      previousBook: {
-        $$in: {
-          author: kevin._id
-        }
-      }
-    })
-  );
+  console.log(await Author.find());
+  console.log(await Book.find());
 }
 
 test()
