@@ -46,6 +46,8 @@ export type QuerySelector<T> = {
   // RONGO PATCH
   $$in?: FilterQuery<any>;
   $$nin?: FilterQuery<any>;
+  $$eq?: FilterQuery<any>;
+  $$ne?: FilterQuery<any>;
   // END PATCH
   // Comparison
   $eq?: T;

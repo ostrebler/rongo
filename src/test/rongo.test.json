@@ -1,0 +1,24 @@
+{
+  "Author": {
+    "foreign": {
+      "favoriteBooks.$": {
+        "collection": "Book",
+        "onDelete": "PULL"
+      }
+    }
+  },
+  "Book": {
+    "foreign": {
+      "previousBook": {
+        "onDelete": "NULLIFY"
+      },
+      "nextBook": {
+        "onDelete": "UNSET"
+      },
+      "author": {
+        "collection": "Author",
+        "onDelete": "REMOVE"
+      }
+    }
+  }
+}

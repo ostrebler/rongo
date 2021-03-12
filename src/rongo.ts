@@ -3,23 +3,29 @@ import { Database, DocumentT, Schema } from ".";
 
 // A handy wrapper around Database
 
-export function rongo<T extends DocumentT>(
-  collection: string,
-  options: DbCollectionOptions = {}
-) {
-  return rongo._database.collection<T>(collection, options);
+export function createRongo() {
+  const database = new Database();
+
+  function rongo<T extends DocumentT>(
+    collection: string,
+    options: DbCollectionOptions = {}
+  ) {
+    return database.collection<T>(collection, options);
+  }
+
+  rongo.connect = (url: string, name: string) => {
+    return database.connect(url, name);
+  };
+
+  rongo.schema = (schema: Schema | string) => {
+    database.schema(schema);
+  };
+
+  rongo.drop = () => {
+    return database.drop();
+  };
+
+  return rongo;
 }
 
-rongo._database = new Database();
-
-rongo.connect = (url: string, name: string) => {
-  return rongo._database.connect(url, name);
-};
-
-rongo.schema = (schema: Schema) => {
-  rongo._database.schema(schema);
-};
-
-rongo.drop = () => {
-  return rongo._database.drop();
-};
+export const rongo = createRongo();

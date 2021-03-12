@@ -1,4 +1,6 @@
 import { Db, DbCollectionOptions, MongoClient } from "mongodb";
+import { readFileSync } from "fs";
+import { isString } from "lodash";
 import { Collection, DocumentT, schemaToGraph } from ".";
 
 export type Graph = {
@@ -22,7 +24,7 @@ export type ForeignKeyConfig = {
   path: string;
   nullable: boolean;
   optional: boolean;
-  onRemove: RemovePolicy;
+  onDelete: DeletePolicy;
 };
 
 export type Schema = {
@@ -33,19 +35,19 @@ export type Schema = {
         collection?: string;
         nullable?: boolean;
         optional?: boolean;
-        onRemove?: RemovePolicy;
+        onDelete?: DeletePolicy;
       };
     };
   };
 };
 
-export enum RemovePolicy {
-  ByPass,
-  Reject, // *
-  Remove, // *
-  Nullify, // * (and "nullable" must be true)
-  Unset, // x.**.y (and "optional" must be true)
-  Pull // x.**.$ | x.**.$.**.y
+export enum DeletePolicy {
+  Bypass = "BYPASS",
+  Reject = "REJECT", // *
+  Remove = "REMOVE", // *
+  Nullify = "NULLIFY", // * (and "nullable" must be true)
+  Unset = "UNSET", // x.**.y (and "optional" must be true)
+  Pull = "PULL" // x.**.$ | x.**.$.**.y
 }
 
 export class Database {
@@ -71,8 +73,10 @@ export class Database {
     this._resolveHandle(client.db(name));
   }
 
-  schema(schema: Schema) {
-    this.graph = schemaToGraph(schema);
+  schema(schema: Schema | string) {
+    this.graph = schemaToGraph(
+      isString(schema) ? JSON.parse(readFileSync(schema).toString()) : schema
+    );
   }
 
   collection<T extends DocumentT>(

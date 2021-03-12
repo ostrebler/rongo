@@ -9,7 +9,12 @@ import {
   OptionalId
 } from "mongodb";
 import { get, map } from "lodash";
-import { Database, FilterQuery, normalizeFilterQuery } from ".";
+import {
+  createDefaultConfig,
+  Database,
+  FilterQuery,
+  normalizeFilterQuery
+} from ".";
 
 export type DocumentT = Record<string, any>;
 
@@ -26,6 +31,7 @@ export class Collection<T extends DocumentT> {
     this.database = database;
     this.name = name;
     this.handle = database.handle.then(db => db.collection<T>(name, options));
+    if (!(name in database.graph)) database.graph[name] = createDefaultConfig();
   }
 
   // Query methods :

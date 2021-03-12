@@ -1,15 +1,12 @@
-import rongo, {
-  FilterQuery,
-  normalizeFilterQuery,
-  ObjectId,
-  RemovePolicy
-} from ".";
+import rongo, { FilterQuery, normalizeFilterQuery, ObjectId } from "../.";
 
 async function test() {
   rongo.connect("mongodb://localhost:27017", "rongo_test");
   await rongo.drop();
 
   // The Author - Book example
+
+  rongo.schema("./src/test/rongo.test.json");
 
   type AuthorDb = {
     _id: ObjectId;
@@ -25,33 +22,6 @@ async function test() {
     nextBook?: ObjectId;
     author: ObjectId;
   };
-
-  rongo.schema({
-    Author: {
-      foreign: {
-        "favoriteBooks.$": {
-          collection: "Book",
-          onRemove: RemovePolicy.Pull
-        }
-      }
-    },
-    Book: {
-      foreign: {
-        previousBook: {
-          nullable: true,
-          onRemove: RemovePolicy.Nullify
-        },
-        nextBook: {
-          optional: true,
-          onRemove: RemovePolicy.Unset
-        },
-        author: {
-          collection: "Author",
-          onRemove: RemovePolicy.Remove
-        }
-      }
-    }
-  });
 
   const Author = rongo<AuthorDb>("Author");
   const Book = rongo<BookDb>("Book");
@@ -142,4 +112,7 @@ test()
     console.log("Test done.");
     process.exit();
   })
-  .catch(e => console.error("Error:", e.message));
+  .catch(e => {
+    console.error("Error:", e.message);
+    process.exit(1);
+  });
