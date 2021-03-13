@@ -84,7 +84,7 @@ async function test() {
   console.log("--------------");
   console.log(await Book.resolve([book, book, book], selector));
   console.log("--------------");
-  const previousBook = await Book.resolve(book, "  previousBook.a");
+  const previousBook = await Book.resolve(book, "  previousBook");
   console.log(previousBook);
 }
 

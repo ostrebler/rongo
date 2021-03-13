@@ -7,7 +7,7 @@ export type SelectorPredicate = (
   item: any,
   index: number,
   array: Array<any>
-) => boolean;
+) => boolean | Promise<boolean>;
 
 // This function is used to resolve a route selector by automatically walking through the data relations
 
@@ -58,10 +58,13 @@ export function resolveSelector<T extends Document>(
     if (isFunction(route)) {
       if (!isArray(value))
         throw new Error("Can't resolve predicate selector in non-array value");
+      const filtered = await value.reduce<Promise<Array<any>>>(
+        async (acc, item, index) =>
+          (await route(item, index, value)) ? [...(await acc), item] : acc,
+        Promise.resolve([])
+      );
       return Promise.all(
-        value
-          .filter(route)
-          .map((item, index) => reducer(item, rest, [...stack, index]))
+        filtered.map((item, index) => reducer(item, rest, [...stack, index]))
       );
     }
     // Otherwise, we keep going down with value[route], thus value needs to be an Object with such a property :
