@@ -1,5 +1,5 @@
-import { Collection, Document, stackToKey, stringToSelector } from "../.";
 import { flatten, isArray, isFunction, isObject } from "lodash";
+import { Collection, Document, stackToKey, stringToSelector } from "../.";
 
 export type Selector = Array<string | number | SelectorPredicate>;
 
@@ -14,7 +14,7 @@ export type SelectorPredicate = (
 export function resolveSelector<T extends Document>(
   collection: Collection<T>,
   document: undefined | null | T | Array<T>,
-  selector: string | Selector
+  selector: Selector
 ) {
   const reducer = async (
     value: any,
@@ -38,7 +38,7 @@ export function resolveSelector<T extends Document>(
           [foreignCol.primaryKey]: value
         });
       // And recursively resolve from there :
-      return foreignCol.resolve(doc, selector);
+      return resolveSelector(foreignCol, doc, selector);
     }
 
     // Otherwise, we keep navigating inside "value"
@@ -80,10 +80,7 @@ export function resolveSelector<T extends Document>(
     return reducer((value as any)[route], rest, [...stack, route]);
   };
 
-  return reducer(
-    document,
-    isArray(selector) ? selector : stringToSelector(selector)
-  );
+  return reducer(document, selector);
 }
 
 // This function enables the creation of selectors using tagged template literals

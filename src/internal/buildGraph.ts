@@ -66,3 +66,5 @@ export function buildGraph(schema: Schema) {
 
   return graph;
 }
+
+// TODO: regex-check the primary and foreign keys

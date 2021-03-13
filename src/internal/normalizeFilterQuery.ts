@@ -1,10 +1,10 @@
 import { FilterQuery as FilterQueryBase } from "mongodb";
 import { isPlainObject } from "lodash";
 import {
-  cloneOperator,
   Collection,
   Document,
   FilterQuery,
+  mapDeep,
   QuerySelector,
   stackToKey
 } from "../.";
@@ -15,7 +15,7 @@ export async function normalizeFilterQuery<T extends Document>(
   collection: Collection<T>,
   query: FilterQuery<T>
 ): Promise<FilterQueryBase<T>> {
-  return cloneOperator(query, async function customizer(value, stack) {
+  return mapDeep(query, async function customizer(value, stack) {
     if (isAugmentedSelector(value)) {
       const key = stackToKey(stack);
       let { $in, $nin, $$in, $$nin, $$eq, $$ne, ...props } = value;
@@ -42,7 +42,7 @@ export async function normalizeFilterQuery<T extends Document>(
         ];
       return {
         // The rest still needs to get recursively checked :
-        ...(await cloneOperator(props, customizer)),
+        ...(await mapDeep(props, customizer)),
         ...($in && { $in }),
         ...($nin && { $nin })
       };

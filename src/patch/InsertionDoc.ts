@@ -1,5 +1,5 @@
-import { ObjectId, OptionalId } from "mongodb";
-import { Document } from "../.";
+import { OptionalId } from "mongodb";
+import { Document, ObjectId } from "../.";
 
 export type InsertionDoc<T extends Document> = InsertionDocPatch<OptionalId<T>>;
 

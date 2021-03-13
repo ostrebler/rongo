@@ -8,7 +8,7 @@ import {
   MongoCountPreferences,
   WithId
 } from "mongodb";
-import { isArray, map } from "lodash";
+import { isArray } from "lodash";
 import {
   createDefaultConfig,
   Database,
@@ -17,7 +17,8 @@ import {
   normalizeFilterQuery,
   normalizeInsertionDoc,
   resolveSelector,
-  Selector
+  Selector,
+  stringToSelector
 } from ".";
 
 export type Document = {
@@ -62,7 +63,11 @@ export class Collection<T extends Document> {
     document: undefined | null | T | Array<T>,
     selector: string | Selector
   ) {
-    return resolveSelector(this, document, selector);
+    return resolveSelector(
+      this,
+      document,
+      isArray(selector) ? selector : stringToSelector(selector)
+    );
   }
 
   async aggregate<U = T>(
@@ -85,7 +90,7 @@ export class Collection<T extends Document> {
   ) {
     const col = await this.handle;
     const normalized = await normalizeFilterQuery(this, query);
-    return col.find(normalized, options ?? {}).toArray();
+    return col.find<U>(normalized, options ?? {}).toArray();
   }
 
   async findOne<U = T>(
@@ -97,17 +102,22 @@ export class Collection<T extends Document> {
     return col.findOne(normalized, options);
   }
 
-  // TODO transform to findSelect
-  async findMap<U = T, K extends keyof U = keyof U>(
-    query: FilterQuery<T>,
-    key: K,
-    options?: FindOneOptions<U extends T ? T : U>
+  async findSelect(
+    query: FilterQuery<T> = {},
+    selector: string | Selector = this.primaryKey,
+    options?: FindOneOptions<T extends T ? T : T>
   ) {
-    const documents = await this.find(query, {
-      ...options,
-      fields: { [key]: 1 } as any
-    });
-    return map(documents, key);
+    const documents = await this.find(query, options);
+    return this.resolve(documents, selector);
+  }
+
+  async findOneSelect(
+    query: FilterQuery<T> = {},
+    selector: string | Selector = this.primaryKey,
+    options?: FindOneOptions<T extends T ? T : T>
+  ) {
+    const document = await this.findOne(query, options);
+    return this.resolve(document, selector);
   }
 
   // Insert methods :

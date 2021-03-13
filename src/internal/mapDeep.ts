@@ -9,7 +9,7 @@ export type Customizer = (
   parent: any
 ) => any;
 
-export async function cloneOperator(
+export async function mapDeep(
   operator: object,
   customizer: Customizer,
   stack: Array<string | number> = [],
@@ -22,7 +22,7 @@ export async function cloneOperator(
   if (isArray(operator))
     return Promise.all(
       operator.map((item, index) =>
-        cloneOperator(item, customizer, [...stack, index], operator)
+        mapDeep(item, customizer, [...stack, index], operator)
       )
     );
   // If the current value is a plain object, its values get mapped with recursive calls
@@ -32,7 +32,7 @@ export async function cloneOperator(
         entries(operator).map(
           async ([key, value]): Promise<[string, any]> => [
             key,
-            await cloneOperator(value, customizer, [...stack, key], operator)
+            await mapDeep(value, customizer, [...stack, key], operator)
           ]
         )
       )

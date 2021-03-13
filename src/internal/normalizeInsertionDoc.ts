@@ -1,12 +1,6 @@
 import { OptionalId } from "mongodb";
 import { get, isArray, isPlainObject, map } from "lodash";
-import {
-  cloneOperator,
-  Collection,
-  Document,
-  InsertionDoc,
-  stackToKey
-} from "../.";
+import { Collection, Document, InsertionDoc, mapDeep, stackToKey } from "../.";
 
 // This function transforms an augmented insertion document into a simple insertion document
 
@@ -14,7 +8,7 @@ export async function normalizeInsertionDoc<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T>
 ): Promise<OptionalId<T>> {
-  return cloneOperator(doc, async (value, stack) => {
+  return mapDeep(doc, async (value, stack) => {
     if (isPlainObject(value) && value.$$insert) {
       const key = stackToKey(stack);
       // Get the foreign key config

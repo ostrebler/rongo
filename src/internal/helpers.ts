@@ -14,7 +14,7 @@ export function createDefaultConfig(): CollectionConfig {
   };
 }
 
-// This function transforms a cloneOperator stack into an exploitable key
+// This function transforms a mapDeep-like stack into an exploitable key
 
 export function stackToKey(stack: Array<string | number>) {
   return stack.filter(key => isString(key) && !key.startsWith("$")).join(".");
