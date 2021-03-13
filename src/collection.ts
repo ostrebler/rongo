@@ -17,6 +17,7 @@ import {
   normalizeFilterQuery,
   normalizeInsertionDoc,
   resolveSelector,
+  select,
   Selector,
   stringToSelector
 } from ".";
@@ -108,7 +109,7 @@ export class Collection<T extends Document> {
     options?: FindOneOptions<T extends T ? T : T>
   ) {
     const documents = await this.find(query, options);
-    return this.resolve(documents, selector);
+    return this.resolve(documents, select`$.${selector}`);
   }
 
   async findOneSelect(

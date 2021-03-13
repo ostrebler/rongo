@@ -72,13 +72,16 @@ async function test() {
   console.log("--------------");
   console.log(await Book.find());
   console.log("--------------");
+  const subSelector = select`
+    author
+    name
+  `;
   const selector = select`
-    $$
+    $
     author
     favoriteBooks
     ${book => book.title.startsWith("L")}
-    author
-    name
+    ${subSelector}
   `;
   console.log(selector);
   console.log("--------------");
@@ -86,6 +89,8 @@ async function test() {
   console.log("--------------");
   const previousBook = await Book.resolve(book, "  previousBook");
   console.log(previousBook);
+  console.log("--------------");
+  console.log(await Book.findSelect({}, Book.primaryKey));
 }
 
 test()

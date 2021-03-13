@@ -1,4 +1,4 @@
-import { flatten, isArray, isFunction, isObject } from "lodash";
+import { flatten, isArray, isFunction, isObject, isString } from "lodash";
 import { Collection, Document, stackToKey, stringToSelector } from "../.";
 
 export type Selector = Array<string | number | SelectorPredicate>;
@@ -87,13 +87,15 @@ export function resolveSelector<T extends Document>(
 
 export function select(
   fragments: TemplateStringsArray,
-  ...args: Array<string | number | SelectorPredicate>
+  ...args: Array<string | number | SelectorPredicate | Selector>
 ) {
+  const argToSelector = (arg: typeof args[number]) =>
+    isArray(arg) ? arg : isString(arg) ? stringToSelector(arg) : [arg];
   return fragments.reduce<Selector>(
     (selector, fragment, index) => [
       ...selector,
       ...stringToSelector(fragment),
-      ...(index !== fragments.length - 1 ? [args[index]] : [])
+      ...(index !== fragments.length - 1 ? argToSelector(args[index]) : [])
     ],
     []
   );

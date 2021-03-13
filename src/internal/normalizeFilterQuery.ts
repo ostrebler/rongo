@@ -77,7 +77,7 @@ export function findForeignKeys<T extends Document>(
     );
   // Get the primary keys of the targeted foreign documents :
   const foreignCol = database.collection(foreignKeyConfig.collection);
-  return foreignCol.findMap(
+  return foreignCol.findSelect(
     foreignQuery,
     foreignCol.primaryKey,
     unique ? { limit: 1 } : undefined
