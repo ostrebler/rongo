@@ -58,6 +58,7 @@ export function resolveSelector<T extends Document>(
     if (isFunction(route)) {
       if (!isArray(value))
         throw new Error("Can't resolve predicate selector in non-array value");
+      // (Async version of Array.filter...)
       const filtered = await value.reduce<Promise<Array<any>>>(
         async (acc, item, index) =>
           (await route(item, index, value)) ? [...(await acc), item] : acc,
