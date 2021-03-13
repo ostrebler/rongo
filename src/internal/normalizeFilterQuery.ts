@@ -62,7 +62,7 @@ export function isAugmentedSelector(entity: any): entity is QuerySelector<any> {
 // This function returns a list of possible foreign keys given a collection, one of its foreign key,
 // and a filter query for the foreign collection
 
-export function findForeignKeys<T>(
+export function findForeignKeys<T extends Document>(
   collection: Collection<T>,
   foreignKey: string,
   foreignQuery: FilterQuery<any>,

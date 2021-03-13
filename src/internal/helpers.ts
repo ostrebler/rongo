@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
-import { isString } from "lodash";
-import { CollectionConfig } from "../.";
+import { isNaN, isString } from "lodash";
+import { CollectionConfig, Selector } from "../.";
 
 export { ObjectId };
 
@@ -18,4 +18,17 @@ export function createDefaultConfig(): CollectionConfig {
 
 export function stackToKey(stack: Array<string | number>) {
   return stack.filter(key => isString(key) && !key.startsWith("$")).join(".");
+}
+
+// This function transforms a string into a valid selector
+
+export function stringToSelector(selector: string): Selector {
+  return selector
+    .split(/[.\n]/)
+    .map(fragment => fragment.replace(/\s+/g, ""))
+    .filter(route => route !== "")
+    .map(route => {
+      const index = parseInt(route);
+      return isNaN(index) ? route : index;
+    });
 }

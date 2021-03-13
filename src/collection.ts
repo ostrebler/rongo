@@ -15,12 +15,16 @@ import {
   FilterQuery,
   InsertionDoc,
   normalizeFilterQuery,
-  normalizeInsertionDoc
+  normalizeInsertionDoc,
+  resolveSelector,
+  Selector
 } from ".";
 
 export type Document = {
   [key: string]: any;
 };
+
+// The Collection class
 
 export class Collection<T extends Document> {
   database: Database;
@@ -54,6 +58,13 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
+  resolve(
+    document: undefined | null | T | Array<T>,
+    selector: string | Selector
+  ) {
+    return resolveSelector(this, document, selector);
+  }
+
   async aggregate<U = T>(
     pipeline?: object[],
     options?: CollectionAggregationOptions
@@ -86,6 +97,7 @@ export class Collection<T extends Document> {
     return col.findOne(normalized, options);
   }
 
+  // TODO transform to findSelect
   async findMap<U = T, K extends keyof U = keyof U>(
     query: FilterQuery<T>,
     key: K,

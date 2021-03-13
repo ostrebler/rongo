@@ -1,4 +1,4 @@
-import rongo, { ObjectId } from "../.";
+import rongo, { ObjectId, select } from "../.";
 
 async function test() {
   rongo.connect("mongodb://localhost:27017", "rongo_test");
@@ -26,7 +26,7 @@ async function test() {
   const Author = rongo<AuthorDb>("Author");
   const Book = rongo<BookDb>("Book");
 
-  const b = await Book.insert({
+  const book = await Book.insert({
     title: "Harry Potter",
     previousBook: null,
     nextBook: undefined,
@@ -48,6 +48,20 @@ async function test() {
                 }
               }
             }
+          },
+          {
+            $$insert: {
+              title: "Lord of the Ring",
+              previousBook: null,
+              nextBook: undefined,
+              author: {
+                $$insert: {
+                  age: 90,
+                  name: "J.R.R Tolkien",
+                  favoriteBooks: []
+                }
+              }
+            }
           }
         ]
       }
@@ -55,7 +69,23 @@ async function test() {
   });
 
   console.log(await Author.find());
+  console.log("--------------");
   console.log(await Book.find());
+  console.log("--------------");
+  const selector = select`
+    $$
+    author
+    favoriteBooks
+    ${book => book.title.startsWith("L")}
+    author
+    name
+  `;
+  console.log(selector);
+  console.log("--------------");
+  console.log(await Book.resolve([book, book, book], selector));
+  console.log("--------------");
+  const previousBook = await Book.resolve(book, "  previousBook.a");
+  console.log(previousBook);
 }
 
 test()

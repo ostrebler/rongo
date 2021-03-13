@@ -55,6 +55,8 @@ export enum DeletePolicy {
   Pull = "PULL" // x.**.$ | x.**.$.**.y
 }
 
+// The Database class
+
 export class Database {
   name: string | null;
   graph: Graph;
