@@ -11,7 +11,7 @@ import {
 
 // This function transforms an augmented FilterQuery into a traditional FilterQuery
 
-export async function normalizeFilterQuery<T extends Document>(
+export function normalizeFilterQuery<T extends Document>(
   collection: Collection<T>,
   query: FilterQuery<T>
 ): Promise<FilterQueryBase<T>> {
@@ -77,7 +77,7 @@ export function findForeignKeys<T extends Document>(
     );
   // Get the primary keys of the targeted foreign documents :
   const foreignCol = database.collection(foreignKeyConfig.collection);
-  return foreignCol.findSelect(
+  return foreignCol.findResolve(
     foreignQuery,
     foreignCol.primaryKey,
     unique ? { limit: 1 } : undefined

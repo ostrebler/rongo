@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "tsc & node dist/test/index.js",
+    "test": "tsc & jest ./dist",
     "prepare": "yarn build"
   },
   "repository": {
@@ -33,10 +33,13 @@
   },
   "homepage": "https://github.com/ostrebler/rongo#readme",
   "dependencies": {
+    "@types/jest": "^26.0.20",
     "@types/lodash": "^4.14.168",
+    "jest": "^26.6.3",
     "lodash": "^4.17.21",
     "mongodb": "^3.6.4",
-    "typescript": "^4.2.3"
+    "typescript": "^4.2.3",
+    "yaml": "^1.10.2"
   },
   "devDependencies": {
     "@types/mongodb": "^3.6.9"

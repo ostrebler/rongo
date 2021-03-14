@@ -1,12 +1,24 @@
-import rongo, { ObjectId, select } from "../.";
+import rongo, {
+  createRongo,
+  InsertionDoc,
+  InsertionDocs,
+  is,
+  ObjectId,
+  select
+} from "../.";
 
-async function test() {
-  rongo.connect("mongodb://localhost:27017", "rongo_test");
+it("loads configuration files", async () => {
+  const rongo = createRongo();
+  rongo.schema("./src/test/rongo.test.yaml");
+});
+
+it("functions", async () => {
+  await rongo.connect("mongodb://localhost:27017", "rongo_test");
   await rongo.drop();
 
   // The Author - Book example
 
-  rongo.schema("./src/test/rongo.test.json");
+  rongo.schema("./src/test/rongo.test.yaml");
 
   type AuthorDb = {
     _id: ObjectId;
@@ -31,74 +43,55 @@ async function test() {
     previousBook: null,
     nextBook: undefined,
     author: {
-      $$insert: {
+      $$insert: is<InsertionDoc<AuthorDb>>({
         age: 45,
         name: "J.K. Rowling",
-        favoriteBooks: [
-          {
-            $$insert: {
+        favoriteBooks: {
+          $$insert: is<InsertionDocs<BookDb>>([
+            {
               title: "Da Vinci Code",
               previousBook: null,
               nextBook: undefined,
               author: {
-                $$insert: {
+                $$insert: is<InsertionDoc<AuthorDb>>({
                   age: 60,
                   name: "Dan Brown",
                   favoriteBooks: []
-                }
+                })
               }
-            }
-          },
-          {
-            $$insert: {
+            },
+            {
               title: "Lord of the Ring",
               previousBook: null,
               nextBook: undefined,
               author: {
-                $$insert: {
+                $$insert: is<InsertionDoc<AuthorDb>>({
                   age: 90,
                   name: "J.R.R Tolkien",
                   favoriteBooks: []
-                }
+                })
               }
             }
-          }
-        ]
-      }
+          ])
+        }
+      })
     }
   });
 
-  console.log(await Author.find());
-  console.log("--------------");
-  console.log(await Book.find());
-  console.log("--------------");
-  const subSelector = select`
-    author
-    name
-  `;
   const selector = select`
-    $
     author
     favoriteBooks
-    ${book => book.title.startsWith("L")}
-    ${subSelector}
+    $
+    title
   `;
-  console.log(selector);
-  console.log("--------------");
-  console.log(await Book.resolve([book, book, book], selector));
-  console.log("--------------");
-  const previousBook = await Book.resolve(book, "  previousBook");
-  console.log(previousBook);
-  console.log("--------------");
-  console.log(await Book.findSelect({}, Book.primaryKey));
-}
 
-test()
-  .then(() => {
-    console.log("Test done.");
-    process.exit();
-  })
-  .catch(e => {
-    console.error("Error:", e.message);
-    process.exit(1);
-  });
+  console.log(selector);
+
+  console.log(await Book.resolve([book, book, book], selector));
+
+  const previousBook = await Book.resolve(book, "previousBook");
+  console.log(previousBook);
+
+  const r = await Book.findResolve({}, "_id");
+  console.log("List of ObjectIds: ", r);
+});

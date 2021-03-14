@@ -9,7 +9,7 @@ export type SelectorPredicate = (
   array: Array<any>
 ) => boolean | Promise<boolean>;
 
-// This function is used to resolve a route selector by automatically walking through the data relations
+// This function is used to resolve a selector by automatically walking through the data relations
 
 export function resolveSelector<T extends Document>(
   collection: Collection<T>,
@@ -29,14 +29,16 @@ export function resolveSelector<T extends Document>(
         collection.foreignKeys[key].collection
       );
       // We fetch the foreign document(s) :
-      if (isArray(value))
-        doc = await foreignCol.find({
-          [foreignCol.primaryKey]: { $in: value }
-        });
-      else
+      if (!isArray(value))
         doc = await foreignCol.findOne({
           [foreignCol.primaryKey]: value
         });
+      else {
+        // TODO: Keep order
+        doc = await foreignCol.find({
+          [foreignCol.primaryKey]: { $in: value }
+        });
+      }
       // And recursively resolve from there :
       return resolveSelector(foreignCol, doc, selector);
     }
@@ -73,10 +75,12 @@ export function resolveSelector<T extends Document>(
       throw new Error(
         `Can't resolve selector <${route}> in primitive value <${value}>`
       );
-    if (!value.hasOwnProperty(route))
+    if (!value.hasOwnProperty(route)) {
+      if (isArray(value)) return reducer(value, ["$", ...selector], stack);
       throw new Error(
-        `Can't resolve selector <${route}> in non-primitive value`
+        `Can't resolve selector <${route}> in non-primitive value, no such property`
       );
+    }
     return reducer((value as any)[route], rest, [...stack, route]);
   };
 

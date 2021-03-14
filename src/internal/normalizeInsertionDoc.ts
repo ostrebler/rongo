@@ -1,10 +1,10 @@
 import { OptionalId } from "mongodb";
-import { get, isArray, isPlainObject, map } from "lodash";
+import { isPlainObject } from "lodash";
 import { Collection, Document, InsertionDoc, mapDeep, stackToKey } from "../.";
 
 // This function transforms an augmented insertion document into a simple insertion document
 
-export async function normalizeInsertionDoc<T extends Document>(
+export function normalizeInsertionDoc<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T>
 ): Promise<OptionalId<T>> {
@@ -23,8 +23,7 @@ export async function normalizeInsertionDoc<T extends Document>(
       );
       const document = await foreignCol.insert(value.$$insert);
       // Return the primary key(s)
-      if (!isArray(document)) return get(document, foreignCol.primaryKey);
-      return map(document, foreignCol.primaryKey);
+      return foreignCol.resolve(document, foreignCol.primaryKey);
     }
   });
 }

@@ -17,14 +17,11 @@ import {
   normalizeFilterQuery,
   normalizeInsertionDoc,
   resolveSelector,
-  select,
   Selector,
   stringToSelector
 } from ".";
 
-export type Document = {
-  [key: string]: any;
-};
+export type Document = object;
 
 // The Collection class
 
@@ -103,16 +100,40 @@ export class Collection<T extends Document> {
     return col.findOne(normalized, options);
   }
 
-  async findSelect(
+  async findResolve<K extends keyof T>(
+    query?: FilterQuery<T>,
+    selector?: K,
+    options?: FindOneOptions<T>
+  ): Promise<Array<T[K]>>;
+
+  async findResolve(
+    query?: FilterQuery<T>,
+    selector?: string | Selector,
+    options?: FindOneOptions<T>
+  ): Promise<any>;
+
+  async findResolve(
     query: FilterQuery<T> = {},
     selector: string | Selector = this.primaryKey,
     options?: FindOneOptions<T extends T ? T : T>
   ) {
     const documents = await this.find(query, options);
-    return this.resolve(documents, select`$.${selector}`);
+    return this.resolve(documents, selector);
   }
 
-  async findOneSelect(
+  async findOneResolve<K extends keyof T>(
+    query?: FilterQuery<T>,
+    selector?: K,
+    options?: FindOneOptions<T>
+  ): Promise<T[K]>;
+
+  async findOneResolve(
+    query?: FilterQuery<T>,
+    selector?: string | Selector,
+    options?: FindOneOptions<T>
+  ): Promise<any>;
+
+  async findOneResolve(
     query: FilterQuery<T> = {},
     selector: string | Selector = this.primaryKey,
     options?: FindOneOptions<T extends T ? T : T>

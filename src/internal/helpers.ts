@@ -4,6 +4,13 @@ import { CollectionConfig, Selector } from "../.";
 
 export { ObjectId };
 
+// This function simply checks that the parameter being passed is of the correct type
+// (useful for nested $$insert for example)
+
+export function is<T>(value: T) {
+  return value;
+}
+
 // This function creates a default collection config
 
 export function createDefaultConfig(): CollectionConfig {

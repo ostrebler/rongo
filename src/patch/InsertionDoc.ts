@@ -3,9 +3,11 @@ import { Document, ObjectId } from "../.";
 
 export type InsertionDoc<T extends Document> = InsertionDocPatch<OptionalId<T>>;
 
+export type InsertionDocs<T extends Document> = Array<InsertionDoc<T>>;
+
 export type InsertionOperator = { $$insert: InsertionDoc<any> };
 
-export type ManyInsertionOperator = { $$insert: Array<InsertionDoc<any>> };
+export type ManyInsertionOperator = { $$insert: InsertionDocs<any> };
 
 export type InsertionDocPatch<T> = T extends object
   ? T extends ObjectId
