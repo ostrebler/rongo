@@ -25,7 +25,7 @@ export function resolveSelector<T extends Document>(
     const key = stackToKey(stack);
     if (key in collection.foreignKeys) {
       let doc: null | Document | Array<Document>;
-      const foreignCol = collection.database.collection(
+      const foreignCol = collection.rongo.collection(
         collection.foreignKeys[key].collection
       );
       // We fetch the foreign document(s) :

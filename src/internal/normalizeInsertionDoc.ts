@@ -18,7 +18,7 @@ export function normalizeInsertionDoc<T extends Document>(
           `No foreign key is set for <${key}> in collection <${collection.name}>`
         );
       // Insert the foreign doc(s)
-      const foreignCol = collection.database.collection(
+      const foreignCol = collection.rongo.collection(
         foreignKeyConfig.collection
       );
       const document = await foreignCol.insert(value.$$insert);

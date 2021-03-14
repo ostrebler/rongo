@@ -1,14 +1,29 @@
 import { ObjectId } from "mongodb";
 import { isNaN, isString } from "lodash";
-import { CollectionConfig, Selector } from "../.";
+import { CollectionConfig, Document, InsertionDoc, Selector } from "../.";
 
 export { ObjectId };
 
 // This function simply checks that the parameter being passed is of the correct type
-// (useful for nested $$insert for example)
 
 export function is<T>(value: T) {
   return value;
+}
+
+// This function checks the type validity of an insertion document
+
+export function isInsert<T extends Document>(
+  doc: InsertionDoc<T>
+): InsertionDoc<T>;
+
+export function isInsert<T extends Document>(
+  doc: Array<InsertionDoc<T>>
+): Array<InsertionDoc<T>>;
+
+export function isInsert<T extends Document>(
+  doc: InsertionDoc<T> | Array<InsertionDoc<T>>
+) {
+  return doc;
 }
 
 // This function creates a default collection config

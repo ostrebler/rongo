@@ -1,4 +1,5 @@
-export * from "./database";
+export * from "./types";
+export * from "./rongo";
 export * from "./collection";
 export * from "./patch/FilterQuery";
 export * from "./patch/InsertionDoc";
@@ -8,5 +9,3 @@ export * from "./internal/resolveSelector";
 export * from "./internal/normalizeFilterQuery";
 export * from "./internal/normalizeInsertionDoc";
 export * from "./internal/helpers";
-export * from "./rongo";
-export { rongo as default } from "./rongo";

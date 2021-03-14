@@ -68,7 +68,6 @@ export function findForeignKeys<T extends Document>(
   foreignQuery: FilterQuery<any>,
   unique?: boolean
 ) {
-  const database = collection.database;
   // Get the foreign key config
   const foreignKeyConfig = collection.foreignKeys[foreignKey];
   if (!foreignKeyConfig)
@@ -76,7 +75,7 @@ export function findForeignKeys<T extends Document>(
       `No foreign key is set for <${foreignKey}> in collection <${collection.name}>`
     );
   // Get the primary keys of the targeted foreign documents :
-  const foreignCol = database.collection(foreignKeyConfig.collection);
+  const foreignCol = collection.rongo.collection(foreignKeyConfig.collection);
   return foreignCol.findResolve(
     foreignQuery,
     foreignCol.primaryKey,

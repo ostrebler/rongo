@@ -11,48 +11,43 @@ import {
 import { isArray } from "lodash";
 import {
   createDefaultConfig,
-  Database,
+  Document,
   FilterQuery,
   InsertionDoc,
   normalizeFilterQuery,
   normalizeInsertionDoc,
   resolveSelector,
+  Rongo,
   Selector,
   stringToSelector
 } from ".";
 
-export type Document = object;
-
 // The Collection class
 
 export class Collection<T extends Document> {
-  database: Database;
   name: string;
+  rongo: Rongo;
   handle: Promise<Col<T>>;
 
-  constructor(
-    database: Database,
-    name: string,
-    options: DbCollectionOptions = {}
-  ) {
-    this.database = database;
+  constructor(rongo: Rongo, name: string, options: DbCollectionOptions = {}) {
     this.name = name;
-    this.handle = database.handle.then(db => db.collection<T>(name, options));
-    if (!(name in database.graph)) database.graph[name] = createDefaultConfig();
+    this.rongo = rongo;
+    this.handle = rongo.handle.then(db => db.collection<T>(name, options));
+    if (!(name in rongo.graph)) rongo.graph[name] = createDefaultConfig();
   }
 
   // Meta data :
 
   get primaryKey() {
-    return this.database.graph[this.name].primaryKey;
+    return this.rongo.graph[this.name].primaryKey;
   }
 
   get foreignKeys() {
-    return this.database.graph[this.name].foreignKeys;
+    return this.rongo.graph[this.name].foreignKeys;
   }
 
   get references() {
-    return this.database.graph[this.name].references;
+    return this.rongo.graph[this.name].references;
   }
 
   // Query methods :

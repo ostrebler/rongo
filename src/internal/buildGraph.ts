@@ -12,6 +12,8 @@ import {
 export function buildGraph(schema: Schema) {
   const graph: Graph = Object.create(null);
 
+  // TODO: verify integrity of schema with JSON validator
+
   // For each collection in the schema :
   for (const [collection, partialConfig] of entries(schema)) {
     // If the collection is not already in the graph, create a default config for it :
