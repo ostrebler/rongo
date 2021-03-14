@@ -1,4 +1,4 @@
-import { ObjectId, Rongo } from "../.";
+import { DeletePolicy, Graph, InsertPolicy, ObjectId, Rongo } from "../.";
 
 // The main test database
 
@@ -24,7 +24,7 @@ export type BookDb = {
 
 // The full graph that should be calculated for the test database :
 
-export const graph = {
+export const graph: Graph = {
   Author: {
     primaryKey: "_id",
     foreignKeys: {
@@ -33,7 +33,8 @@ export const graph = {
         collection: "Book",
         nullable: false,
         optional: false,
-        onDelete: "PULL"
+        onInsert: InsertPolicy.Verify,
+        onDelete: DeletePolicy.Pull
       }
     },
     references: {
@@ -43,7 +44,8 @@ export const graph = {
           collection: "Author",
           nullable: false,
           optional: false,
-          onDelete: "REMOVE"
+          onInsert: InsertPolicy.Verify,
+          onDelete: DeletePolicy.Remove
         }
       }
     }
@@ -56,21 +58,24 @@ export const graph = {
         collection: "Book",
         nullable: true,
         optional: false,
-        onDelete: "NULLIFY"
+        onInsert: InsertPolicy.Verify,
+        onDelete: DeletePolicy.Nullify
       },
       nextBook: {
         path: "nextBook",
         collection: "Book",
         nullable: false,
         optional: true,
-        onDelete: "UNSET"
+        onInsert: InsertPolicy.Verify,
+        onDelete: DeletePolicy.Unset
       },
       author: {
         path: "author",
         collection: "Author",
         nullable: false,
         optional: false,
-        onDelete: "REMOVE"
+        onInsert: InsertPolicy.Verify,
+        onDelete: DeletePolicy.Remove
       }
     },
     references: {
@@ -80,7 +85,8 @@ export const graph = {
           collection: "Book",
           nullable: false,
           optional: false,
-          onDelete: "PULL"
+          onInsert: InsertPolicy.Verify,
+          onDelete: DeletePolicy.Pull
         }
       },
       Book: {
@@ -89,14 +95,16 @@ export const graph = {
           collection: "Book",
           nullable: true,
           optional: false,
-          onDelete: "NULLIFY"
+          onInsert: InsertPolicy.Verify,
+          onDelete: DeletePolicy.Nullify
         },
         nextBook: {
           path: "nextBook",
           collection: "Book",
           nullable: false,
           optional: true,
-          onDelete: "UNSET"
+          onInsert: InsertPolicy.Verify,
+          onDelete: DeletePolicy.Unset
         }
       }
     }

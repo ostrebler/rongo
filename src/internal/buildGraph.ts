@@ -4,6 +4,7 @@ import {
   DeletePolicy,
   ForeignKeyConfig,
   Graph,
+  InsertPolicy,
   Schema
 } from "../.";
 
@@ -34,6 +35,7 @@ export function buildGraph(schema: Schema) {
         collection: pathConfig.collection ?? collection,
         nullable: pathConfig.nullable ?? false,
         optional: pathConfig.optional ?? false,
+        onInsert: pathConfig.onInsert ?? InsertPolicy.Bypass,
         onDelete: pathConfig.onDelete ?? DeletePolicy.Bypass
       };
 

@@ -19,6 +19,7 @@ export type ForeignKeyConfig = {
   collection: string;
   nullable: boolean;
   optional: boolean;
+  onInsert: InsertPolicy;
   onDelete: DeletePolicy;
 };
 
@@ -30,6 +31,7 @@ export type Schema = {
         collection?: string;
         nullable?: boolean;
         optional?: boolean;
+        onInsert?: InsertPolicy;
         onDelete?: DeletePolicy;
       };
     };
@@ -37,6 +39,11 @@ export type Schema = {
 };
 
 export type Document = object;
+
+export enum InsertPolicy {
+  Bypass = "BYPASS",
+  Verify = "VERIFY"
+}
 
 export enum DeletePolicy {
   Bypass = "BYPASS",

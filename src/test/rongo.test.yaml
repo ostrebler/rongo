@@ -2,13 +2,17 @@ Author:
   foreign:
     favoriteBooks.$:
       collection: Book
+      onInsert: VERIFY
       onDelete: PULL
 Book:
   foreign:
     previousBook:
+      onInsert: VERIFY
       onDelete: NULLIFY
     nextBook:
+      onInsert: VERIFY
       onDelete: UNSET
     author:
       collection: Author
+      onInsert: VERIFY
       onDelete: REMOVE

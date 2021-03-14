@@ -158,6 +158,7 @@ export class Collection<T extends Document> {
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
     options?: CollectionInsertOneOptions | CollectionInsertManyOptions
   ) {
+    // TODO: Safe inserts by checking for foreign key existence
     const col = await this.handle;
     if (!isArray(doc)) {
       const normalized = await normalizeInsertionDoc(this, doc);
