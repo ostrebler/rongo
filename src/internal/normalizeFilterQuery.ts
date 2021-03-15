@@ -16,7 +16,7 @@ export function normalizeFilterQuery<T extends Document>(
   query: FilterQuery<T>
 ): Promise<FilterQueryBase<T>> {
   return mapDeep(query, async function customizer(value, stack, parent) {
-    if (isAugmentedSelector(value)) {
+    if (isAugmentedQuerySelector(value)) {
       const key = stackToKey(stack);
       // Get the foreign key config
       const foreignKeyConfig = collection.foreignKeys[key];
@@ -54,7 +54,9 @@ export function normalizeFilterQuery<T extends Document>(
 
 // This function checks if an object is an augmented query selector
 
-export function isAugmentedSelector(entity: any): entity is QuerySelector<any> {
+export function isAugmentedQuerySelector(
+  entity: any
+): entity is QuerySelector<any> {
   return (
     isPlainObject(entity) &&
     (entity.$$in || entity.$$nin || entity.$$eq || entity.$$ne)
