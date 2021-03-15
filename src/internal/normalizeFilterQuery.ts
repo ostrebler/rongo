@@ -15,7 +15,7 @@ export function normalizeFilterQuery<T extends Document>(
   collection: Collection<T>,
   query: FilterQuery<T>
 ): Promise<FilterQueryBase<T>> {
-  return mapDeep(query, async function customizer(value, stack) {
+  return mapDeep(query, async function customizer(value, stack, parent) {
     if (isAugmentedSelector(value)) {
       const key = stackToKey(stack);
       let { $in, $nin, $$in, $$nin, $$eq, $$ne, ...props } = value;
@@ -42,7 +42,7 @@ export function normalizeFilterQuery<T extends Document>(
         ];
       return {
         // The rest still needs to get recursively checked :
-        ...(await mapDeep(props, customizer)),
+        ...(await mapDeep(props, customizer, stack, parent)),
         ...($in && { $in }),
         ...($nin && { $nin })
       };
