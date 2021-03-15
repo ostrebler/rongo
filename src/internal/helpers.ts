@@ -1,6 +1,12 @@
 import { ObjectId } from "mongodb";
 import { isNaN, isString } from "lodash";
-import { CollectionConfig, Document, InsertionDoc, Selector } from "../.";
+import {
+  CollectionConfig,
+  Document,
+  InsertionDoc,
+  Selector,
+  Stack
+} from "../.";
 
 export { ObjectId };
 
@@ -38,7 +44,7 @@ export function createDefaultConfig(): CollectionConfig {
 
 // This function transforms a mapDeep-like stack into an exploitable key
 
-export function stackToKey(stack: Array<string | number>) {
+export function stackToKey(stack: Stack) {
   return stack.filter(key => isString(key) && !key.startsWith("$")).join(".");
 }
 
@@ -46,8 +52,7 @@ export function stackToKey(stack: Array<string | number>) {
 
 export function stringToSelector(selector: string): Selector {
   return selector
-    .split(/[.\n]/)
-    .map(fragment => fragment.replace(/\s+/g, ""))
+    .split(/[.\s]+/)
     .filter(route => route !== "")
     .map(route => {
       const index = parseInt(route);

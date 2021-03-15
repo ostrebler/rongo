@@ -1,17 +1,21 @@
+import { FilterQuery } from "../.";
+
+// Used to store the collection dependencies in an optimally exploitable manner :
+
 export type Graph = {
   [collection: string]: CollectionConfig;
 };
 
 export type CollectionConfig = {
   primaryKey: string;
-  foreignKeys: ForeignKeysConfig;
-  references: {
-    [collection: string]: ForeignKeysConfig;
+  foreignKeys: {
+    [foreignKey: string]: ForeignKeyConfig;
   };
-};
-
-export type ForeignKeysConfig = {
-  [foreignKey: string]: ForeignKeyConfig;
+  references: {
+    [collection: string]: {
+      [foreignKey: string]: ForeignKeyConfig;
+    };
+  };
 };
 
 export type ForeignKeyConfig = {
@@ -22,6 +26,8 @@ export type ForeignKeyConfig = {
   onInsert: InsertPolicy;
   onDelete: DeletePolicy;
 };
+
+// Used to express the collection dependencies in a user-friendly way :
 
 export type Schema = {
   [collection: string]: {
@@ -38,12 +44,14 @@ export type Schema = {
   };
 };
 
-export type Document = object;
+// The actions one can apply when documents are inserted :
 
 export enum InsertPolicy {
   Bypass = "BYPASS",
   Verify = "VERIFY"
 }
+
+// The actions one can apply when documents are deleted :
 
 export enum DeletePolicy {
   Bypass = "BYPASS",
@@ -53,3 +61,15 @@ export enum DeletePolicy {
   Unset = "UNSET", // x.**.y (and "optional" must be true)
   Pull = "PULL" // x.**.$ | x.**.$.**.y
 }
+
+// The general type constraint for documents :
+
+export type Document = object;
+
+// Used internally to keep track of the current location during object traversals :
+
+export type Stack = Array<string | number>;
+
+// Used to locate and retrieve a resource :
+
+export type Selector = Array<string | number | FilterQuery<any>>;

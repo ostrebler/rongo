@@ -8,7 +8,7 @@ import {
   MongoCountPreferences,
   WithId
 } from "mongodb";
-import { isArray } from "lodash";
+import { isArray, isString } from "lodash";
 import {
   createDefaultConfig,
   Document,
@@ -54,13 +54,19 @@ export class Collection<T extends Document> {
 
   resolve(
     document: undefined | null | T | Array<T>,
-    selector: string | Selector
+    selector: string | Selector,
+    defaultValue?: any
   ) {
-    return resolveSelector(
-      this,
-      document,
-      isArray(selector) ? selector : stringToSelector(selector)
-    );
+    try {
+      return resolveSelector(
+        this,
+        document,
+        isString(selector) ? stringToSelector(selector) : selector
+      );
+    } catch (e) {
+      if (defaultValue !== undefined) return defaultValue;
+      throw e;
+    }
   }
 
   async aggregate<U = T>(

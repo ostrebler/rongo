@@ -1,13 +1,12 @@
 import { flatten, isArray, isFunction, isObject, isString } from "lodash";
-import { Collection, Document, stackToKey, stringToSelector } from "../.";
-
-export type Selector = Array<string | number | SelectorPredicate>;
-
-export type SelectorPredicate = (
-  item: any,
-  index: number,
-  array: Array<any>
-) => boolean | Promise<boolean>;
+import {
+  Collection,
+  Document,
+  Selector,
+  Stack,
+  stackToKey,
+  stringToSelector
+} from "../.";
 
 // This function is used to resolve a selector by automatically walking through the data relations
 
@@ -19,7 +18,7 @@ export function resolveSelector<T extends Document>(
   const reducer = async (
     value: any,
     selector: Selector,
-    stack: Array<string | number> = []
+    stack: Stack = []
   ): Promise<any> => {
     // If we arrived at a foreign key (or array of)
     const key = stackToKey(stack);
@@ -91,7 +90,7 @@ export function resolveSelector<T extends Document>(
 
 export function select(
   fragments: TemplateStringsArray,
-  ...args: Array<string | number | SelectorPredicate | Selector>
+  ...args: Array<Selector[number] | Selector>
 ) {
   const argToSelector = (arg: typeof args[number]) =>
     isArray(arg) ? arg : isString(arg) ? stringToSelector(arg) : [arg];
