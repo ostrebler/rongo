@@ -1,4 +1,5 @@
-import { entries } from "lodash";
+import Ajv from "ajv";
+import { entries, last, values } from "lodash";
 import {
   createDefaultConfig,
   DeletePolicy,
@@ -10,10 +11,13 @@ import {
 
 // This function transforms a schema configuration into an exploitable internal dependency graph
 
-export function buildGraph(schema: Schema) {
-  const graph: Graph = Object.create(null);
+export function buildGraph(schema: unknown) {
+  if (!isSchema(schema))
+    throw new Error(
+      "The schema is invalid, please refer to the doc make sure it has the correct structure"
+    );
 
-  // TODO: verify integrity of schema with JSON validator
+  const graph: Graph = Object.create(null);
 
   // For each collection in the schema :
   for (const [collection, partialConfig] of entries(schema)) {
@@ -26,8 +30,9 @@ export function buildGraph(schema: Schema) {
     config.foreignKeys = Object.create(null);
 
     // For each foreign key in the current collection :
-    for (const [path, pathConfig] of entries(partialConfig.foreign ?? {})) {
-      const foreignKey = path.replace(/(\.\$)+/g, "");
+    for (const [pathStr, pathConfig] of entries(partialConfig.foreign ?? {})) {
+      const path = pathStr.split(".");
+      const foreignKey = path.filter(route => route !== "$").join(".");
 
       // Create the config for the current foreign key :
       const foreignKeyConfig: ForeignKeyConfig = {
@@ -44,7 +49,7 @@ export function buildGraph(schema: Schema) {
         foreignKeyConfig.nullable = true;
       else if (foreignKeyConfig.onDelete === DeletePolicy.Unset) {
         foreignKeyConfig.optional = true;
-        if (path.endsWith("$"))
+        if (last(path) === "$")
           throw new Error(
             `Foreign key <${foreignKey}> in collection <${collection}> can't implement the "Unset" remove policy`
           );
@@ -71,4 +76,50 @@ export function buildGraph(schema: Schema) {
   return graph;
 }
 
-// TODO: regex-check the primary and foreign keys
+// This callback is used to validate the JSON structure of a schema
+
+const id = "([a-zA-Z0-9_]+)";
+export const isSchema = new Ajv().compile<Schema>({
+  type: "object",
+  additionalProperties: false,
+  patternProperties: {
+    [`^${id}$`]: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        primary: {
+          type: "string",
+          pattern: `^${id}(\\.${id})*$`
+        },
+        foreign: {
+          type: "object",
+          additionalProperties: false,
+          patternProperties: {
+            [`^${id}(\\.(${id}|\\$))*$`]: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                collection: {
+                  type: "string",
+                  pattern: `^${id}$`
+                },
+                nullable: {
+                  type: "boolean"
+                },
+                optional: {
+                  type: "boolean"
+                },
+                onInsert: {
+                  enum: values(InsertPolicy)
+                },
+                onDelete: {
+                  enum: values(DeletePolicy)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});

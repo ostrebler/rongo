@@ -1,5 +1,3 @@
-import { FilterQuery } from "../.";
-
 // Used to store the collection dependencies in an optimally exploitable manner :
 
 export type Graph = {
@@ -19,7 +17,7 @@ export type CollectionConfig = {
 };
 
 export type ForeignKeyConfig = {
-  path: string;
+  path: Path;
   collection: string;
   nullable: boolean;
   optional: boolean;
@@ -66,10 +64,10 @@ export enum DeletePolicy {
 
 export type Document = object;
 
+// Used to locate a key with precision
+
+export type Path = Array<string>;
+
 // Used internally to keep track of the current location during object traversals :
 
 export type Stack = Array<string | number>;
-
-// Used to locate and retrieve a resource :
-
-export type Selector = Array<string | number | FilterQuery<any>>;

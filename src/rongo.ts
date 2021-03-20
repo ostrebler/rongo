@@ -4,11 +4,8 @@ import {
   MongoClient,
   MongoClientOptions
 } from "mongodb";
-import { extname } from "path";
-import { readFileSync } from "fs";
-import YAML from "yaml";
 import { isString } from "lodash";
-import { buildGraph, Collection, Document, Graph, Schema } from ".";
+import { buildGraph, Collection, Document, Graph, loadSchema, Schema } from ".";
 
 // The Rongo class
 
@@ -34,22 +31,7 @@ export class Rongo {
   }
 
   schema(schema: Schema | string) {
-    const parse = (fileName: string): Schema => {
-      const extension = extname(fileName);
-      const content = readFileSync(fileName).toString();
-      switch (extension) {
-        case ".json":
-          return JSON.parse(content);
-        case ".yaml":
-        case ".yml":
-          return YAML.parse(content);
-        default:
-          throw new Error(
-            `Unknown file extension <${extension}> for Rongo schema`
-          );
-      }
-    };
-    this.graph = buildGraph(isString(schema) ? parse(schema) : schema);
+    this.graph = buildGraph(isString(schema) ? loadSchema(schema) : schema);
   }
 
   collection<T extends Document>(
