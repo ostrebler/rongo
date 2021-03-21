@@ -19,8 +19,8 @@ export type CollectionConfig = {
 export type ForeignKeyConfig = {
   path: Path;
   collection: string;
-  nullable: boolean;
   optional: boolean;
+  nullable: boolean;
   onInsert: InsertPolicy;
   onDelete: DeletePolicy;
 };
@@ -33,8 +33,8 @@ export type Schema = {
     foreign?: {
       [foreignKeyPath: string]: {
         collection?: string;
-        nullable?: boolean;
         optional?: boolean;
+        nullable?: boolean;
         onInsert?: InsertPolicy;
         onDelete?: DeletePolicy;
       };
@@ -55,9 +55,10 @@ export enum DeletePolicy {
   Bypass = "BYPASS",
   Reject = "REJECT", // *
   Remove = "REMOVE", // *
+  Unset = "UNSET", // * (and "optional" must be true)
   Nullify = "NULLIFY", // * (and "nullable" must be true)
-  Unset = "UNSET", // x.**.y (and "optional" must be true)
-  Pull = "PULL" // x.**.$ | x.**.$.**.y
+  Pull = "PULL", // x.**.$.**
+  NullifyIn = "NULLIFY_IN" // x.**.$.**
 }
 
 // The general type constraint for documents :

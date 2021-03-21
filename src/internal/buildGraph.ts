@@ -1,5 +1,5 @@
+import { entries, values } from "lodash";
 import Ajv from "ajv";
-import { entries, last, values } from "lodash";
 import {
   createDefaultConfig,
   DeletePolicy,
@@ -14,7 +14,7 @@ import {
 export function buildGraph(schema: unknown) {
   if (!isSchema(schema))
     throw new Error(
-      "The schema is invalid, please refer to the doc make sure it has the correct structure"
+      "The schema is invalid, please refer to the doc make sure it has the correct structure and follows the expected key patterns"
     );
 
   const graph: Graph = Object.create(null);
@@ -38,25 +38,25 @@ export function buildGraph(schema: unknown) {
       const foreignKeyConfig: ForeignKeyConfig = {
         path,
         collection: pathConfig.collection ?? collection,
-        nullable: pathConfig.nullable ?? false,
         optional: pathConfig.optional ?? false,
+        nullable: pathConfig.nullable ?? false,
         onInsert: pathConfig.onInsert ?? InsertPolicy.Bypass,
         onDelete: pathConfig.onDelete ?? DeletePolicy.Bypass
       };
 
       // Check for config coherence
-      if (foreignKeyConfig.onDelete === DeletePolicy.Nullify)
-        foreignKeyConfig.nullable = true;
-      else if (foreignKeyConfig.onDelete === DeletePolicy.Unset) {
+      if (foreignKeyConfig.onDelete === DeletePolicy.Unset)
         foreignKeyConfig.optional = true;
-        if (last(path) === "$")
-          throw new Error(
-            `Foreign key <${foreignKey}> in collection <${collection}> can't implement the "Unset" remove policy`
-          );
-      } else if (foreignKeyConfig.onDelete === DeletePolicy.Pull) {
+      else if (foreignKeyConfig.onDelete === DeletePolicy.Nullify)
+        foreignKeyConfig.nullable = true;
+      else if (
+        [DeletePolicy.Pull, DeletePolicy.NullifyIn].includes(
+          foreignKeyConfig.onDelete
+        )
+      ) {
         if (!path.includes("$"))
           throw new Error(
-            `Foreign key <${foreignKey}> in collection <${collection}> can't implement the "Pull" remove policy`
+            `Foreign key <${foreignKey}> in collection <${collection}> can't implement the Pull or NullifyIn remove policy`
           );
       }
 
@@ -103,10 +103,10 @@ export const isSchema = new Ajv().compile<Schema>({
                   type: "string",
                   pattern: `^${id}$`
                 },
-                nullable: {
+                optional: {
                   type: "boolean"
                 },
-                optional: {
+                nullable: {
                   type: "boolean"
                 },
                 onInsert: {

@@ -16,6 +16,7 @@ import {
   InsertionDoc,
   normalizeFilterQuery,
   normalizeInsertionDoc,
+  parse,
   Rongo,
   Selector
 } from ".";
@@ -50,21 +51,17 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
+  select(selector: string | Selector) {
+    if (isString(selector)) selector = parse(selector);
+    return selector.in(this);
+  }
+
   resolve(
     document: undefined | null | T | Array<T>,
-    selector: string | Selector,
-    defaultValue?: any
+    selector: string | Selector
   ) {
-    try {
-      return resolveSelector(
-        this,
-        document,
-        isString(selector) ? stringToSelector(selector) : selector
-      );
-    } catch (e) {
-      if (defaultValue !== undefined) return defaultValue;
-      throw e;
-    }
+    if (isString(selector)) selector = parse(selector);
+    return selector.select(document, this, []);
   }
 
   async aggregate<U = T>(

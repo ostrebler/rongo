@@ -33,6 +33,10 @@ export abstract class Selector {
     collection: Collection<any>,
     stack: Stack
   ): Promise<any>;
+
+  in(collection: Collection<any>) {
+    return this.select(new LazyDocuments(collection, []), collection, []);
+  }
 }
 
 // The IdentitySelector represents the "empty selector", it returns the value it was passed, unchanged ; It is
@@ -40,7 +44,7 @@ export abstract class Selector {
 
 export class IdentitySelector extends Selector {
   async select(value: any) {
-    return value;
+    return value instanceof LazyDocuments ? value.fetch() : value;
   }
 }
 
@@ -76,6 +80,13 @@ export class FieldSelector extends Selector {
     // If value represents foreign key(s), then...
     const foreignKeyConfig = collection.foreignKeys[stackToKey(stack)];
     if (foreignKeyConfig) {
+      // If foreign key(s) is nullish and if it's legal, shortcut the selection from there with the nullish value :
+      if (
+        (foreignKeyConfig.optional && value === undefined) ||
+        (foreignKeyConfig.nullable && value === null)
+      )
+        return value;
+
       // ...switch to foreign collection :
       collection = collection.rongo.collection(foreignKeyConfig.collection);
       // ...select foreign document(s) as current value :
@@ -237,11 +248,13 @@ export class TupleSelector extends Selector {
 // The ObjectSelector creates an object by mapping the subselections to actual [key, value] pairs
 
 export class ObjectSelector extends Selector {
-  private readonly fields: Array<[string, Selector]>;
+  private readonly selectors: Array<[string, Selector]>;
+  private readonly fields: Set<string>;
 
-  constructor(fields: Array<[string, Selector]>) {
+  constructor(selectors: Array<[string, Selector]>) {
     super();
-    this.fields = fields;
+    this.selectors = selectors;
+    this.fields = new Set(selectors.map(([field]) => field));
   }
 
   async select(
@@ -257,30 +270,25 @@ export class ObjectSelector extends Selector {
       throw new Error(
         `Can't resolve object selector in primitive value <${value}>`
       );
-
     const result = Object.create(null);
-    // The following variable keeps track of the presence and definition of a wildcard instruction :
-    let wildcard: Selector | null = null;
     // Each field definition adds a field to the result and a field-subselection from there on :
-    for (const [field, selector] of this.fields)
-      if (field === "*") wildcard = selector;
-      else
+    for (const [field, selector] of this.selectors)
+      if (field !== "*") {
         result[field] = await new FieldSelector(field, selector).select(
           value,
           collection,
           stack
         );
+      } else {
+        for (const field of keys(value))
+          if (!this.fields.has(field))
+            result[field] = await new FieldSelector(field, selector).select(
+              value,
+              collection,
+              stack
+            );
+      }
     // If there's a wildcard instruction, do the same as above with the remaining keys in "value" :
-    if (wildcard) {
-      for (const field of keys(value))
-        if (!(field in result))
-          result[field] = await new FieldSelector(field, wildcard).select(
-            value,
-            collection,
-            stack
-          );
-    }
-
     return result;
   }
 }
