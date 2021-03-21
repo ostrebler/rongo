@@ -74,14 +74,12 @@ export type QuerySelector<T> = {
   $regex?: T extends string ? RegExp | string : never;
   $options?: T extends string ? string : never;
   // Geospatial
-  // TODO: define better types for geo queries
   $geoIntersects?: { $geometry: object };
   $geoWithin?: object;
   $near?: object;
   $nearSphere?: object;
   $maxDistance?: number;
   // Array
-  // TODO: define better types for $all and $elemMatch
   $all?: T extends ReadonlyArray<infer U> ? any[] : never;
   $elemMatch?: T extends ReadonlyArray<infer U> ? object : never;
   $size?: T extends ReadonlyArray<infer U> ? number : never;

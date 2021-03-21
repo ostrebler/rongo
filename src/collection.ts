@@ -16,10 +16,8 @@ import {
   InsertionDoc,
   normalizeFilterQuery,
   normalizeInsertionDoc,
-  resolveSelector,
   Rongo,
-  Selector,
-  stringToSelector
+  Selector
 } from ".";
 
 // The Collection class
@@ -165,6 +163,7 @@ export class Collection<T extends Document> {
     options?: CollectionInsertOneOptions | CollectionInsertManyOptions
   ) {
     // TODO: Safe inserts by checking for foreign key existence
+    // TODO: Delete children $$insert insertions if parent insertion fails
     const col = await this.handle;
     if (!isArray(doc)) {
       const normalized = await normalizeInsertionDoc(this, doc);

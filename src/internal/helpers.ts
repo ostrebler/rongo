@@ -1,12 +1,11 @@
 import { ObjectId } from "mongodb";
-import { isNaN, isString } from "lodash";
-import {
-  CollectionConfig,
-  Document,
-  InsertionDoc,
-  Selector,
-  Stack
-} from "../.";
+import { isString } from "lodash";
+import { extname } from "path";
+import { readFileSync } from "fs";
+import YAML from "yaml";
+import { CollectionConfig, Document, InsertionDoc, Stack } from "../.";
+
+// ObjectId is being reexported for practicality
 
 export { ObjectId };
 
@@ -48,14 +47,18 @@ export function stackToKey(stack: Stack) {
   return stack.filter(key => isString(key) && !key.startsWith("$")).join(".");
 }
 
-// This function transforms a string into a valid selector
+// This function loads a schema from a file
 
-export function stringToSelector(selector: string): Selector {
-  return selector
-    .split(/[.\s]+/)
-    .filter(route => route !== "")
-    .map(route => {
-      const index = parseInt(route);
-      return isNaN(index) ? route : index;
-    });
+export function loadSchema(fileName: string): unknown {
+  const extension = extname(fileName);
+  const content = readFileSync(fileName).toString();
+  switch (extension.toLowerCase()) {
+    case ".json":
+      return JSON.parse(content);
+    case ".yaml":
+    case ".yml":
+      return YAML.parse(content);
+    default:
+      throw new Error(`Unknown file extension <${extension}> for Rongo schema`);
+  }
 }

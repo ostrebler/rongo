@@ -67,7 +67,3 @@ export type Document = object;
 // Used to locate a key with precision
 
 export type Path = Array<string>;
-
-// Used internally to keep track of the current location during object traversals :
-
-export type Stack = Array<string | number>;
