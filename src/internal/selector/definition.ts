@@ -271,15 +271,16 @@ export class ObjectSelector extends Selector {
         `Can't resolve object selector in primitive value <${value}>`
       );
     const result = Object.create(null);
-    // Each field definition adds a field to the result and a field-subselection from there on :
     for (const [field, selector] of this.selectors)
       if (field !== "*") {
+        // Each field definition adds a field to the result and a field-subselection from there on :
         result[field] = await new FieldSelector(field, selector).select(
           value,
           collection,
           stack
         );
       } else {
+        // In the case of a wildcard field, do the same as above with the remaining keys in "value" :
         for (const field of keys(value))
           if (!this.fields.has(field))
             result[field] = await new FieldSelector(field, selector).select(
@@ -288,7 +289,6 @@ export class ObjectSelector extends Selector {
               stack
             );
       }
-    // If there's a wildcard instruction, do the same as above with the remaining keys in "value" :
     return result;
   }
 }
