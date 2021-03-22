@@ -6,7 +6,8 @@ import {
   ObjectSelector,
   Rongo,
   select,
-  Selector
+  Selector,
+  ShortcutSelector
 } from "../.";
 import { Author, Book, graph, rongo } from "./samples";
 
@@ -69,7 +70,9 @@ it("correctly parses resolves", async () => {
   const s5 = select`${s4}`;
   const s6 = select`${{ name: "Dan Brown" }}.0.name`;
   const s7 = select`{ *, author {*} }`;
-  const s8 = select`
+  const s8 = select`>`;
+  const s9 = select`> label`;
+  const s10 = select`
     {
       *, 
       items {
@@ -135,6 +138,14 @@ it("correctly parses resolves", async () => {
     util.inspect(await Book.findOneResolve({ title: "Harry Potter" }, s7), {
       depth: null
     })
+  );
+
+  expect(s8).toEqual(new ShortcutSelector(new IdentitySelector()));
+  await expect(async () => await Author.resolve(null, s2)).rejects.toThrow();
+  expect(await Author.resolve(null, s9)).toBe(null);
+
+  expect(s9).toEqual(
+    new ShortcutSelector(new FieldSelector("label", new IdentitySelector()))
   );
 });
 
