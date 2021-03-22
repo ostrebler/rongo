@@ -111,12 +111,12 @@ export function parseSelector(
 
     // If we have an object selector :
     if (match("{")) {
-      const selectors: Array<[string, Selector]> = [];
+      const selectors = new Map<string, Selector>();
       while (true) {
         matchPattern(spacePattern);
         if (!((result = matchPattern(fieldPattern)) || (result = match("*"))))
           return fail("Object subselections must start with a field selector");
-        selectors.push([result[0], expr(index)]);
+        selectors.set(result[0], expr(index));
         matchPattern(spacePattern);
         if (match(",")) continue;
         if (match("}")) return new ObjectSelector(selectors);

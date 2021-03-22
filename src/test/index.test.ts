@@ -1,10 +1,12 @@
+import util from "util";
 import {
   FieldSelector,
   IdentitySelector,
   IndexSelector,
   ObjectSelector,
   Rongo,
-  select
+  select,
+  Selector
 } from "../.";
 import { Author, Book, graph, rongo } from "./samples";
 
@@ -61,37 +63,13 @@ it("correctly inserts documents", async () => {
 
 it("correctly parses resolves", async () => {
   const s1 = select``;
-  expect(s1).toEqual(new IdentitySelector());
-
   const s2 = select`label`;
-  expect(s2).toEqual(new FieldSelector("label", new IdentitySelector()));
-
   const s3 = select` nested  ${"label"}  `;
-  expect(s3).toEqual(
-    new FieldSelector(
-      "nested",
-      new FieldSelector("label", new IdentitySelector())
-    )
-  );
-
   const s4 = select` { _id,label  422  , ra-nk }  `;
-  expect(s4).toEqual(
-    new ObjectSelector([
-      ["_id", new IdentitySelector()],
-      ["label", new IndexSelector(422, new IdentitySelector())],
-      ["ra-nk", new IdentitySelector()]
-    ])
-  );
-
   const s5 = select`${s4}`;
-  expect(s5).toEqual(s4);
-
-  expect(() => select`${s4} field`).toThrow();
-
   const s6 = select`${{ name: "Dan Brown" }}.0.name`;
-  expect(await Author.select(s6)).toEqual("Dan Brown");
-
-  const selector = select`
+  const s7 = select`{ *, author {*} }`;
+  const s8 = select`
     {
       *, 
       items {
@@ -111,6 +89,53 @@ it("correctly parses resolves", async () => {
       todos [1, 4, 7]
     }
   `;
+
+  expect(s1).toEqual(new IdentitySelector());
+  expect(await Book.select`0`).toEqual(await Book.findOne());
+  expect(s2).toEqual(new FieldSelector("label", new IdentitySelector()));
+
+  expect(s3).toEqual(
+    new FieldSelector(
+      "nested",
+      new FieldSelector("label", new IdentitySelector())
+    )
+  );
+
+  expect(s4).toEqual(
+    new ObjectSelector(
+      new Map<string, Selector>([
+        ["_id", new IdentitySelector()],
+        ["label", new IndexSelector(422, new IdentitySelector())],
+        ["ra-nk", new IdentitySelector()]
+      ])
+    )
+  );
+
+  expect(s4 === select`${s4}`).toBe(true);
+  expect(s4 === select`${select`    ${s4}    `}`).toBe(true);
+  expect(s5).toEqual(s4);
+  expect(() => select`${s4} field`).toThrow();
+  expect(await Author.select`${s6}`).toEqual("Dan Brown");
+
+  expect(s7).toEqual(
+    new ObjectSelector(
+      new Map<string, Selector>([
+        ["*", new IdentitySelector()],
+        [
+          "author",
+          new ObjectSelector(
+            new Map<string, Selector>([["*", new IdentitySelector()]])
+          )
+        ]
+      ])
+    )
+  );
+
+  console.log(
+    util.inspect(await Book.findOneResolve({ title: "Harry Potter" }, s7), {
+      depth: null
+    })
+  );
 });
 
 it("correctly disconnects", async () => {

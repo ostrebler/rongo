@@ -253,9 +253,9 @@ export class TupleSelector extends Selector {
 export class ObjectSelector extends Selector {
   private readonly selectors: Map<string, Selector>;
 
-  constructor(selectors: Array<[string, Selector]>) {
+  constructor(selectors: Map<string, Selector>) {
     super();
-    this.selectors = new Map(selectors);
+    this.selectors = selectors;
   }
 
   async select(

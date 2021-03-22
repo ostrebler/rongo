@@ -19,6 +19,8 @@ import {
   normalizeInsertionDoc,
   parseSelector,
   Rongo,
+  select,
+  SelectArgument,
   Selector
 } from ".";
 
@@ -52,14 +54,13 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
-  select(selector: string | Selector) {
-    if (isString(selector)) selector = parseSelector(selector);
-    return selector.in(this);
+  select(chunks: TemplateStringsArray, ...args: Array<SelectArgument>) {
+    return select(chunks, ...args).in(this);
   }
 
   resolve(
     document: undefined | null | T | Array<T>,
-    selector: string | Selector
+    selector: string | Selector // TODO: SelectArgument ?
   ) {
     if (isString(selector)) selector = parseSelector(selector);
     return selector.select(document, this, []);
