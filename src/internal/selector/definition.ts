@@ -11,8 +11,10 @@ import {
 // This is the grammar of Selectors :
 //
 // selector:
+// | <>                                      { IdentitySelector }
 // | <field> selector                        { FieldSelector(field, arg, selector) }
 // | <index> selector                        { IndexSelector(index, selector) }
+// | <>> selector                            { ShortcutSelector(selector) }
 // | <$> selector                            { MapSelector(selector) }
 // | <$$> selector                           { FlatMapSelector(selector) }
 // | <arg as object> selector                { FilterSelector(arg, selector) }
@@ -23,7 +25,6 @@ import {
 //     ((<field>|<*>) selector)
 //     (<,> (<field>|<*>) selector)*
 //   <}>                                     { ObjectSelector(...[field, selector]) }
-// | <>                                      { IdentitySelector }
 //
 // spacing:
 // | <[.\s]+>
@@ -68,7 +69,7 @@ export class FieldSelector extends Selector {
     collection: Collection<any>,
     stack: Stack
   ): Promise<any> {
-    // If the current value is an array, insert implicit mapping :
+    // If the current value is an array, insert an implicit mapping :
     if (isArray(value) || value instanceof LazyDocuments)
       return new MapSelector(this).select(value, collection, stack);
     // Otherwise, it has to be an object :
@@ -83,7 +84,7 @@ export class FieldSelector extends Selector {
     // If value represents foreign key(s), then...
     const foreignKeyConfig = collection.foreignKeys[stackToKey(stack)];
     if (foreignKeyConfig) {
-      // If foreign key(s) is nullish and if it's legal, shortcut the selection from there with the nullish value :
+      // If foreign key(s) is nullish and if it's legal, an implicit shortcut is applied :
       if (
         (foreignKeyConfig.optional && value === undefined) ||
         (foreignKeyConfig.nullable && value === null)
@@ -127,6 +128,22 @@ export class IndexSelector extends Selector {
     else
       throw new Error(`Can't resolve index <${this.index}> in non-array value`);
     return this.selector.select(value, collection, [...stack, this.index]);
+  }
+}
+
+// The ShortcutSelector stops the selection if the current value is nullish, preventing runtime errors :
+
+export class ShortcutSelector extends Selector {
+  private readonly selector: Selector;
+
+  constructor(selector: Selector) {
+    super();
+    this.selector = selector;
+  }
+
+  async select(value: any, collection: Collection<any>, stack: Stack) {
+    if (value === null || value === undefined) return value;
+    return this.selector.select(value, collection, stack);
   }
 }
 

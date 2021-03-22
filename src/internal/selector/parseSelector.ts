@@ -10,14 +10,17 @@ import {
   PredicateSelector,
   Selector,
   SelectSymbolEntry,
+  ShortcutSelector,
   TupleSelector
 } from ".";
 
 // This is the grammar of Selectors :
 //
 // selector:
+// | <>                                      { IdentitySelector }
 // | <field> selector                        { FieldSelector(field, arg, selector) }
 // | <index> selector                        { IndexSelector(index, selector) }
+// | <>> selector                            { ShortcutSelector(selector) }
 // | <$> selector                            { MapSelector(selector) }
 // | <$$> selector                           { FlatMapSelector(selector) }
 // | <arg as object> selector                { FilterSelector(arg, selector) }
@@ -28,7 +31,6 @@ import {
 //     ((<field>|<*>) selector)
 //     (<,> (<field>|<*>) selector)*
 //   <}>                                     { ObjectSelector(...[field, selector]) }
-// | <>                                      { IdentitySelector }
 //
 // spacing:
 // | <[.\s]+>
@@ -76,6 +78,9 @@ export function parseSelector(
     // If we have an index selector :
     if ((result = matchPattern(indexPattern)))
       return new IndexSelector(Number(result[0]), expr(index));
+
+    // If we have a shortcut selector :
+    if (match(">")) return new ShortcutSelector(expr(index));
 
     // If we have a flat-map or map selector :
     if (match("$$")) return new FlatMapSelector(expr(index));
