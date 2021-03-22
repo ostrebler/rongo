@@ -6,7 +6,7 @@ import {
   Rongo,
   select
 } from "../.";
-import { AuthorDb, BookDb, graph, rongo } from "./samples";
+import { Author, Book, graph, rongo } from "./samples";
 
 it("correctly loads and parses YAML and JSON configuration files", () => {
   const rongoYml = new Rongo("mongodb://localhost:27017", "rongo_test");
@@ -22,9 +22,6 @@ it("correctly connects to the database", async () => {
 
 it("correctly inserts documents", async () => {
   await rongo.drop();
-
-  const Author = rongo.collection<AuthorDb>("Author");
-  const Book = rongo.collection<BookDb>("Book");
 
   const book = await Book.insert({
     title: "Harry Potter",
@@ -90,6 +87,9 @@ it("correctly parses resolves", async () => {
   expect(s5).toEqual(s4);
 
   expect(() => select`${s4} field`).toThrow();
+
+  const s6 = select`${{ name: "Dan Brown" }}.0.name`;
+  expect(await Author.select(s6)).toEqual("Dan Brown");
 
   const selector = select`
     {

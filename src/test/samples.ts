@@ -22,6 +22,11 @@ export type BookDb = {
   author: ObjectId;
 };
 
+// Some test collections :
+
+export const Author = rongo.collection<AuthorDb>("Author");
+export const Book = rongo.collection<BookDb>("Book");
+
 // The full graph that should be calculated for the test database :
 
 export const graph: Graph = {
