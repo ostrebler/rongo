@@ -110,7 +110,9 @@ export function parseSelector(
         matchPattern(spacePattern);
         if (match(",")) continue;
         if (match("]")) return new TupleSelector(selectors);
-        return fail(`Unexpected character <${raw[index.value]}>`);
+        return fail(
+          `Unexpected character <${raw[index.value]}>, expected <,> or <]>`
+        );
       }
     }
 
@@ -120,12 +122,16 @@ export function parseSelector(
       while (true) {
         matchPattern(spacePattern);
         if (!((result = matchPattern(fieldPattern)) || (result = match("*"))))
-          return fail("Object subselections must start with a field selector");
+          return fail(
+            "Object subselections must start with a field or wildcard selector"
+          );
         selectors.set(result[0], expr(index));
         matchPattern(spacePattern);
         if (match(",")) continue;
         if (match("}")) return new ObjectSelector(selectors);
-        return fail(`Unexpected character <${raw[index.value]}>`);
+        return fail(
+          `Unexpected character <${raw[index.value]}>, expected <,> or <}>`
+        );
       }
     }
 
