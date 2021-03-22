@@ -1,4 +1,4 @@
-import { flatten, isArray, isObject, keys } from "lodash";
+import { flatten, isArray, isPlainObject, keys } from "lodash";
 import {
   Collection,
   FilterQuery,
@@ -72,7 +72,7 @@ export class FieldSelector extends Selector {
     if (isArray(value) || value instanceof LazyDocuments)
       return new MapSelector(this).select(value, collection, stack);
     // Otherwise, it has to be an object :
-    if (!isObject(value))
+    if (!isPlainObject(value))
       throw new Error(
         `Can't resolve field <${this.field}> in primitive value <${value}>`
       );
@@ -267,7 +267,7 @@ export class ObjectSelector extends Selector {
     if (isArray(value) || value instanceof LazyDocuments)
       return new MapSelector(this).select(value, collection, stack);
     // Otherwise, it has to be an object :
-    if (!isObject(value))
+    if (!isPlainObject(value))
       throw new Error(
         `Can't resolve object selector in primitive value <${value}>`
       );
