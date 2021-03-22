@@ -1,4 +1,5 @@
 export * from "./types";
 export * from "./definition";
 export * from "./lazyDocuments";
-export * from "./parse";
+export * from "./parseSelector";
+export * from "./select";

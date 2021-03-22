@@ -29,7 +29,7 @@ export const graph: Graph = {
     primaryKey: "_id",
     foreignKeys: {
       favoriteBooks: {
-        path: "favoriteBooks.$",
+        path: ["favoriteBooks", "$"],
         collection: "Book",
         nullable: false,
         optional: false,
@@ -40,7 +40,7 @@ export const graph: Graph = {
     references: {
       Book: {
         author: {
-          path: "author",
+          path: ["author"],
           collection: "Author",
           nullable: false,
           optional: false,
@@ -54,7 +54,7 @@ export const graph: Graph = {
     primaryKey: "_id",
     foreignKeys: {
       previousBook: {
-        path: "previousBook",
+        path: ["previousBook"],
         collection: "Book",
         nullable: true,
         optional: false,
@@ -62,7 +62,7 @@ export const graph: Graph = {
         onDelete: DeletePolicy.Nullify
       },
       nextBook: {
-        path: "nextBook",
+        path: ["nextBook"],
         collection: "Book",
         nullable: false,
         optional: true,
@@ -70,7 +70,7 @@ export const graph: Graph = {
         onDelete: DeletePolicy.Unset
       },
       author: {
-        path: "author",
+        path: ["author"],
         collection: "Author",
         nullable: false,
         optional: false,
@@ -81,7 +81,7 @@ export const graph: Graph = {
     references: {
       Author: {
         favoriteBooks: {
-          path: "favoriteBooks.$",
+          path: ["favoriteBooks", "$"],
           collection: "Book",
           nullable: false,
           optional: false,
@@ -91,7 +91,7 @@ export const graph: Graph = {
       },
       Book: {
         previousBook: {
-          path: "previousBook",
+          path: ["previousBook"],
           collection: "Book",
           nullable: true,
           optional: false,
@@ -99,7 +99,7 @@ export const graph: Graph = {
           onDelete: DeletePolicy.Nullify
         },
         nextBook: {
-          path: "nextBook",
+          path: ["nextBook"],
           collection: "Book",
           nullable: false,
           optional: true,

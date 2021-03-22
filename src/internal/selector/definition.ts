@@ -18,8 +18,11 @@ import {
 // | <arg as object> selector                { FilterSelector(arg, selector) }
 // | <arg as function> selector              { PredicateSelector(arg, selector) }
 // | <arg as selector>                       { arg }
-// | <[> (selector <,>?)* <]>                { TupleSelector(...[selector]) }
-// | <{> ((<field>|<*>) selector <,>?)* <}>  { ObjectSelector(...[field, selector]) }
+// | <[> selector (<,> selector)* <]>        { TupleSelector(...[selector]) }
+// | <{>
+//     ((<field>|<*>) selector)
+//     (<,> (<field>|<*>) selector)*
+//   <}>                                     { ObjectSelector(...[field, selector]) }
 // | <>                                      { IdentitySelector }
 //
 // spacing:
@@ -248,13 +251,11 @@ export class TupleSelector extends Selector {
 // The ObjectSelector creates an object by mapping the subselections to actual [key, value] pairs
 
 export class ObjectSelector extends Selector {
-  private readonly selectors: Array<[string, Selector]>;
-  private readonly fields: Set<string>;
+  private readonly selectors: Map<string, Selector>;
 
   constructor(selectors: Array<[string, Selector]>) {
     super();
-    this.selectors = selectors;
-    this.fields = new Set(selectors.map(([field]) => field));
+    this.selectors = new Map(selectors);
   }
 
   async select(
@@ -282,7 +283,7 @@ export class ObjectSelector extends Selector {
       } else {
         // In the case of a wildcard field, do the same as above with the remaining keys in "value" :
         for (const field of keys(value))
-          if (!this.fields.has(field))
+          if (!this.selectors.has(field))
             result[field] = await new FieldSelector(field, selector).select(
               value,
               collection,

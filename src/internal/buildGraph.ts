@@ -47,13 +47,9 @@ export function buildGraph(schema: unknown) {
       // Check for config coherence
       if (foreignKeyConfig.onDelete === DeletePolicy.Unset)
         foreignKeyConfig.optional = true;
-      else if (foreignKeyConfig.onDelete === DeletePolicy.Nullify)
+      if (foreignKeyConfig.onDelete === DeletePolicy.Nullify)
         foreignKeyConfig.nullable = true;
-      else if (
-        [DeletePolicy.Pull, DeletePolicy.NullifyIn].includes(
-          foreignKeyConfig.onDelete
-        )
-      ) {
+      if (foreignKeyConfig.onDelete === DeletePolicy.Pull) {
         if (!path.includes("$"))
           throw new Error(
             `Foreign key <${foreignKey}> in collection <${collection}> can't implement the Pull or NullifyIn remove policy`
@@ -78,7 +74,8 @@ export function buildGraph(schema: unknown) {
 
 // This callback is used to validate the JSON structure of a schema
 
-const id = "([a-zA-Z0-9_]+)";
+const id = "([a-zA-Z_-][a-zA-Z0-9_-]*)";
+
 export const isSchema = new Ajv().compile<Schema>({
   type: "object",
   additionalProperties: false,

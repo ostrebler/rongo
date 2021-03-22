@@ -3,20 +3,12 @@ import { Document, ObjectId } from "../.";
 
 export type InsertionDoc<T extends Document> = InsertionDocPatch<OptionalId<T>>;
 
-export type InsertionOperator = { $$insert: InsertionDoc<any> };
+export type InsertionDocPatch<T extends Document> = {
+  [K in keyof T]: PrimitivePatch<T[K]>;
+};
 
-export type ManyInsertionOperator = { $$insert: Array<InsertionDoc<any>> };
-
-export type InsertionDocPatch<T> = T extends object
+export type PrimitivePatch<T> = T extends object
   ? T extends ObjectId
-    ? T | InsertionOperator
-    :
-        | { [K in keyof T]: InsertionDocPatch<T[K]> }
-        | (T extends Array<infer U>
-            ? U extends object
-              ? U extends ObjectId
-                ? ManyInsertionOperator
-                : never
-              : ManyInsertionOperator
-            : never)
-  : T | InsertionOperator;
+    ? ObjectId | InsertionDoc<any>
+    : InsertionDocPatch<T>
+  : T | InsertionDoc<any>;

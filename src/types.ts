@@ -57,8 +57,7 @@ export enum DeletePolicy {
   Remove = "REMOVE", // *
   Unset = "UNSET", // * (and "optional" must be true)
   Nullify = "NULLIFY", // * (and "nullable" must be true)
-  Pull = "PULL", // x.**.$.**
-  NullifyIn = "NULLIFY_IN" // x.**.$.**
+  Pull = "PULL" // x.**.$.**
 }
 
 // The general type constraint for documents :

@@ -3,33 +3,11 @@ import { isString } from "lodash";
 import { extname } from "path";
 import { readFileSync } from "fs";
 import YAML from "yaml";
-import { CollectionConfig, Document, InsertionDoc, Stack } from "../.";
+import { CollectionConfig, Stack } from "../.";
 
 // ObjectId is being reexported for practicality
 
 export { ObjectId };
-
-// This function simply checks that the parameter being passed is of the correct type
-
-export function is<T>(value: T) {
-  return value;
-}
-
-// This function checks the type validity of an insertion document
-
-export function isInsert<T extends Document>(
-  doc: InsertionDoc<T>
-): InsertionDoc<T>;
-
-export function isInsert<T extends Document>(
-  doc: Array<InsertionDoc<T>>
-): Array<InsertionDoc<T>>;
-
-export function isInsert<T extends Document>(
-  doc: InsertionDoc<T> | Array<InsertionDoc<T>>
-) {
-  return doc;
-}
 
 // This function creates a default collection config
 
@@ -41,7 +19,7 @@ export function createDefaultConfig(): CollectionConfig {
   };
 }
 
-// This function transforms a mapDeep-like stack into an exploitable key
+// This function transforms a stack into an exploitable key
 
 export function stackToKey(stack: Stack) {
   return stack.filter(key => isString(key) && !key.startsWith("$")).join(".");

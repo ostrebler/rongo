@@ -13,10 +13,11 @@ import {
   createDefaultConfig,
   Document,
   FilterQuery,
+  InsertDependency,
   InsertionDoc,
   normalizeFilterQuery,
   normalizeInsertionDoc,
-  parse,
+  parseSelector,
   Rongo,
   Selector
 } from ".";
@@ -52,7 +53,7 @@ export class Collection<T extends Document> {
   // Query methods :
 
   select(selector: string | Selector) {
-    if (isString(selector)) selector = parse(selector);
+    if (isString(selector)) selector = parseSelector(selector);
     return selector.in(this);
   }
 
@@ -60,7 +61,7 @@ export class Collection<T extends Document> {
     document: undefined | null | T | Array<T>,
     selector: string | Selector
   ) {
-    if (isString(selector)) selector = parse(selector);
+    if (isString(selector)) selector = parseSelector(selector);
     return selector.select(document, this, []);
   }
 
@@ -159,19 +160,24 @@ export class Collection<T extends Document> {
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
     options?: CollectionInsertOneOptions | CollectionInsertManyOptions
   ) {
-    // TODO: Safe inserts by checking for foreign key existence
-    // TODO: Delete children $$insert insertions if parent insertion fails
     const col = await this.handle;
-    if (!isArray(doc)) {
-      const normalized = await normalizeInsertionDoc(this, doc);
-      const result = await col.insertOne(normalized, options);
-      return result.ops[0];
-    } else {
-      const normalized = await Promise.all(
-        doc.map(doc => normalizeInsertionDoc(this, doc))
-      );
-      const result = await col.insertMany(normalized, options);
-      return result.ops;
+    const dependencies = new InsertDependency(this.rongo);
+    try {
+      const normalized = await normalizeInsertionDoc(this, doc, dependencies);
+      if (!isArray(normalized)) {
+        const result = await col.insertOne(normalized, options);
+        return result.ops[0];
+      } else {
+        const result = await col.insertMany(normalized, options);
+        return result.ops;
+      }
+    } catch (e) {
+      await dependencies.delete();
+      throw e;
     }
   }
+
+  // Delete methods :
+
+  deleteMany(...args: Array<any>): any {}
 }

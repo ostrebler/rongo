@@ -1,14 +1,12 @@
 import { entries, fromPairs, isArray, isPlainObject } from "lodash";
-import { Stack } from "../.";
+import { MapDeepCustomizer, Stack } from "../.";
 
 // This function is used to traverse and clone/transform augmented Mongo operators
 // (query, update, projection, etc.) and insertion documents
 
-export type Customizer = (value: any, stack: Stack, parent: any) => any;
-
 export async function mapDeep(
-  value: object,
-  customizer: Customizer,
+  value: any,
+  customizer: MapDeepCustomizer,
   stack: Stack = [],
   parent: any = undefined
 ): Promise<any> {

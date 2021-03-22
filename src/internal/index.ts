@@ -3,6 +3,6 @@ export * from "./buildGraph";
 export * from "./mapDeep";
 export * from "./normalizeFilterQuery";
 export * from "./normalizeInsertionDoc";
-export * from "./verifyInsertionDoc";
+export * from "./insertDependency";
 export * from "./helpers";
 export * from "./selector";

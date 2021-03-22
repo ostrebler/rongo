@@ -17,42 +17,6 @@ export type SelectArgument =
   | FilterQuery<any>
   | PredicateSelectorCallback;
 
-// Used to label a specific token in order to be consumed by the parser :
+// The possible entries in the symbol table
 
-export enum SelectorTokenType {
-  Field,
-  Wildcard,
-  Index,
-  Comma,
-  MapOperator,
-  FlatMapOperator,
-  SelectArgument,
-  BracketOpen,
-  BracketClose,
-  SquareBracketOpen,
-  SquareBracketClose
-}
-
-// Use as a yield value by the token generator :
-
-export type SelectorToken =
-  | {
-      type: SelectorTokenType.Field;
-      field: string;
-    }
-  | {
-      type: SelectorTokenType.Index;
-      index: number;
-    }
-  | {
-      type: SelectorTokenType.SelectArgument;
-      argument: SelectArgument;
-    }
-  | {
-      type: Exclude<
-        SelectorTokenType,
-        | SelectorTokenType.Field
-        | SelectorTokenType.Index
-        | SelectorTokenType.SelectArgument
-      >;
-    };
+export type SelectSymbolEntry = Exclude<SelectArgument, string | number>;
