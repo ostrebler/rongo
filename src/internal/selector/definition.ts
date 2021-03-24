@@ -18,9 +18,9 @@ import {
 // | <$> selector                                    { MapSelector(selector) }
 // | <$$> selector                                   { FlatMapSelector(selector) }
 // | <arg as selector>                               { arg }
-// | <arg as function> selector                      { PredicateSelector(arg, selector) }
+// | <arg as function> selector                      { FilterSelector(arg, selector) }
 // | <arg as function> <?> selector (<:> selector)?  { SwitchSelector(arg, selector, selector) }
-// | <arg as object> selector                        { FilterSelector(arg, selector) }
+// | <arg as object> selector                        { FilterQuerySelector(arg, selector) }
 // | <[> selector (<,> selector)* <]>                { TupleSelector(...[selector]) }
 // | <{>
 //     ((<field>|<*>) selector)
@@ -197,9 +197,9 @@ export class FlatMapSelector extends Selector {
   }
 }
 
-// The PredicateSelector filters the current array based on a predicate function
+// The FilterSelector filters the current array based on a predicate function
 
-export class PredicateSelector extends Selector {
+export class FilterSelector extends Selector {
   private readonly predicate: SelectorPredicateCallback;
   private readonly selector: Selector;
 
@@ -254,9 +254,9 @@ export class SwitchSelector extends Selector {
   }
 }
 
-// The FilterSelector adds a filter query to the current lazy array of documents
+// The FilterQuerySelector adds a filter query to the current lazy array of documents
 
-export class FilterSelector extends Selector {
+export class FilterQuerySelector extends Selector {
   private readonly query: FilterQuery<any>;
   private readonly selector: Selector;
 

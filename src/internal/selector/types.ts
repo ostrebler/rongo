@@ -1,6 +1,6 @@
 import { FilterQuery, Selector } from "../../.";
 
-// Used by PredicateSelector and SwitchSelector to filter array values and switch branches
+// Used by FilterSelector and SwitchSelector to filter array values and switch branches
 
 export type SelectorPredicateCallback = (
   value: any,

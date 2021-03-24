@@ -1,13 +1,13 @@
 import { isFunction, isPlainObject } from "lodash";
 import {
   FieldSelector,
+  FilterQuerySelector,
   FilterSelector,
   FlatMapSelector,
   IdentitySelector,
   IndexSelector,
   MapSelector,
   ObjectSelector,
-  PredicateSelector,
   Selector,
   SelectSymbolEntry,
   ShortcutSelector,
@@ -25,9 +25,9 @@ import {
 // | <$> selector                                    { MapSelector(selector) }
 // | <$$> selector                                   { FlatMapSelector(selector) }
 // | <arg as selector>                               { arg }
-// | <arg as function> selector                      { PredicateSelector(arg, selector) }
+// | <arg as function> selector                      { FilterSelector(arg, selector) }
 // | <arg as function> <?> selector (<:> selector)?  { SwitchSelector(arg, selector, selector) }
-// | <arg as object> selector                        { FilterSelector(arg, selector) }
+// | <arg as object> selector                        { FilterQuerySelector(arg, selector) }
 // | <[> selector (<,> selector)* <]>                { TupleSelector(...[selector]) }
 // | <{>
 //     ((<field>|<*>) selector)
@@ -96,7 +96,7 @@ export function parseSelector(
       // ...a predicate selector or switch selector :
       if (isFunction(argument)) {
         matchPattern(spacePattern);
-        if (!match("?")) return new PredicateSelector(argument, expr(index));
+        if (!match("?")) return new FilterSelector(argument, expr(index));
         const ifSelector = expr(index);
         matchPattern(spacePattern);
         return new SwitchSelector(
@@ -107,7 +107,7 @@ export function parseSelector(
       }
       // ...or a filter selector :
       if (isPlainObject(argument))
-        return new FilterSelector(argument!, expr(index));
+        return new FilterQuerySelector(argument!, expr(index));
       throw new Error(
         `Invalid template argument <${result[0]}> in selector string`
       );
