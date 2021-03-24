@@ -11,26 +11,28 @@ import {
   Selector,
   SelectSymbolEntry,
   ShortcutSelector,
+  SwitchSelector,
   TupleSelector
 } from ".";
 
 // This is the grammar of Selectors :
 //
 // selector:
-// | <>                                      { IdentitySelector }
-// | <field> selector                        { FieldSelector(field, arg, selector) }
-// | <index> selector                        { IndexSelector(index, selector) }
-// | <>> selector                            { ShortcutSelector(selector) }
-// | <$> selector                            { MapSelector(selector) }
-// | <$$> selector                           { FlatMapSelector(selector) }
-// | <arg as object> selector                { FilterSelector(arg, selector) }
-// | <arg as function> selector              { PredicateSelector(arg, selector) }
-// | <arg as selector>                       { arg }
-// | <[> selector (<,> selector)* <]>        { TupleSelector(...[selector]) }
+// | <>                                              { IdentitySelector }
+// | <field> selector                                { FieldSelector(field, arg, selector) }
+// | <index> selector                                { IndexSelector(index, selector) }
+// | <>> selector                                    { ShortcutSelector(selector) }
+// | <$> selector                                    { MapSelector(selector) }
+// | <$$> selector                                   { FlatMapSelector(selector) }
+// | <arg as selector>                               { arg }
+// | <arg as function> selector                      { PredicateSelector(arg, selector) }
+// | <arg as function> <?> selector (<:> selector)?  { SwitchSelector(arg, selector, selector) }
+// | <arg as object> selector                        { FilterSelector(arg, selector) }
+// | <[> selector (<,> selector)* <]>                { TupleSelector(...[selector]) }
 // | <{>
 //     ((<field>|<*>) selector)
 //     (<,> (<field>|<*>) selector)*
-//   <}>                                     { ObjectSelector(...[field, selector]) }
+//   <}>                                             { ObjectSelector(...[field, selector]) }
 //
 // spacing:
 // | <[.\s]+>
@@ -91,9 +93,18 @@ export function parseSelector(
       const argument = symTable.get(result[0]);
       // ...a nested selector :
       if (argument instanceof Selector) return argument;
-      // ...a predicate selector :
-      if (isFunction(argument))
-        return new PredicateSelector(argument, expr(index));
+      // ...a predicate selector or switch selector :
+      if (isFunction(argument)) {
+        matchPattern(spacePattern);
+        if (!match("?")) return new PredicateSelector(argument, expr(index));
+        const ifSelector = expr(index);
+        matchPattern(spacePattern);
+        return new SwitchSelector(
+          argument,
+          ifSelector,
+          match(":") ? expr(index) : new IdentitySelector()
+        );
+      }
       // ...or a filter selector :
       if (isPlainObject(argument))
         return new FilterSelector(argument!, expr(index));

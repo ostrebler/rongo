@@ -1,11 +1,11 @@
 import { FilterQuery, Selector } from "../../.";
 
-// Used by the PredicateSelector to filter array values
+// Used by PredicateSelector and SwitchSelector to filter array values and switch branches
 
-export type PredicateSelectorCallback = (
-  item: any,
-  index: number,
-  array: Array<any>
+export type SelectorPredicateCallback = (
+  value: any,
+  index: number, // Not present for SwitchSelector
+  array: Array<any> // Not present for SwitchSelector
 ) => boolean | Promise<boolean>;
 
 // The possible template literal arguments to the select builder :
@@ -15,7 +15,7 @@ export type SelectArgument =
   | number
   | Selector
   | FilterQuery<any>
-  | PredicateSelectorCallback;
+  | SelectorPredicateCallback;
 
 // The possible entries in the symbol table
 

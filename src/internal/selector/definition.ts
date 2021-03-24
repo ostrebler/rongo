@@ -3,7 +3,7 @@ import {
   Collection,
   FilterQuery,
   LazyDocuments,
-  PredicateSelectorCallback,
+  SelectorPredicateCallback,
   Stack,
   stackToKey
 } from "../../.";
@@ -11,20 +11,21 @@ import {
 // This is the grammar of Selectors :
 //
 // selector:
-// | <>                                      { IdentitySelector }
-// | <field> selector                        { FieldSelector(field, arg, selector) }
-// | <index> selector                        { IndexSelector(index, selector) }
-// | <>> selector                            { ShortcutSelector(selector) }
-// | <$> selector                            { MapSelector(selector) }
-// | <$$> selector                           { FlatMapSelector(selector) }
-// | <arg as object> selector                { FilterSelector(arg, selector) }
-// | <arg as function> selector              { PredicateSelector(arg, selector) }
-// | <arg as selector>                       { arg }
-// | <[> selector (<,> selector)* <]>        { TupleSelector(...[selector]) }
+// | <>                                              { IdentitySelector }
+// | <field> selector                                { FieldSelector(field, arg, selector) }
+// | <index> selector                                { IndexSelector(index, selector) }
+// | <>> selector                                    { ShortcutSelector(selector) }
+// | <$> selector                                    { MapSelector(selector) }
+// | <$$> selector                                   { FlatMapSelector(selector) }
+// | <arg as selector>                               { arg }
+// | <arg as function> selector                      { PredicateSelector(arg, selector) }
+// | <arg as function> <?> selector (<:> selector)?  { SwitchSelector(arg, selector, selector) }
+// | <arg as object> selector                        { FilterSelector(arg, selector) }
+// | <[> selector (<,> selector)* <]>                { TupleSelector(...[selector]) }
 // | <{>
 //     ((<field>|<*>) selector)
 //     (<,> (<field>|<*>) selector)*
-//   <}>                                     { ObjectSelector(...[field, selector]) }
+//   <}>                                             { ObjectSelector(...[field, selector]) }
 //
 // spacing:
 // | <[.\s]+>
@@ -196,35 +197,13 @@ export class FlatMapSelector extends Selector {
   }
 }
 
-// The FilterSelector adds a filter query to the current lazy array of documents
-
-export class FilterSelector extends Selector {
-  private readonly query: FilterQuery<any>;
-  private readonly selector: Selector;
-
-  constructor(query: FilterQuery<any>, selector: Selector) {
-    super();
-    this.query = query;
-    this.selector = selector;
-  }
-
-  async select(value: any, collection: Collection<any>, stack: Stack) {
-    // Simply add a filter query to the current lazy array of documents and keep selecting from there :
-    if (value instanceof LazyDocuments)
-      return this.selector.select(value.extend(this.query), collection, stack);
-    throw new Error(
-      "Can't apply MongoDB filter query to non-lazy arrays of documents"
-    );
-  }
-}
-
 // The PredicateSelector filters the current array based on a predicate function
 
 export class PredicateSelector extends Selector {
-  private readonly predicate: PredicateSelectorCallback;
+  private readonly predicate: SelectorPredicateCallback;
   private readonly selector: Selector;
 
-  constructor(predicate: PredicateSelectorCallback, selector: Selector) {
+  constructor(predicate: SelectorPredicateCallback, selector: Selector) {
     super();
     this.predicate = predicate;
     this.selector = selector;
@@ -245,6 +224,55 @@ export class PredicateSelector extends Selector {
     );
     // Keep selection going on filtered array :
     return this.selector.select(value, collection, stack);
+  }
+}
+
+// The SwitchSelector acts like a if-else statement
+
+export class SwitchSelector extends Selector {
+  private readonly predicate: SelectorPredicateCallback;
+  private readonly ifSelector: Selector;
+  private readonly elseSelector: Selector;
+
+  constructor(
+    predicate: SelectorPredicateCallback,
+    ifSelector: Selector,
+    elseSelector: Selector
+  ) {
+    super();
+    this.predicate = predicate;
+    this.ifSelector = ifSelector;
+    this.elseSelector = elseSelector;
+  }
+
+  async select(value: any, collection: Collection<any>, stack: Stack) {
+    // If it's an array, all items are needed, so unlazy lazy arrays :
+    if (value instanceof LazyDocuments) value = await value.fetch();
+    return this[
+      (await this.predicate(value, -1, [])) ? "ifSelector" : "elseSelector"
+    ].select(value, collection, stack);
+  }
+}
+
+// The FilterSelector adds a filter query to the current lazy array of documents
+
+export class FilterSelector extends Selector {
+  private readonly query: FilterQuery<any>;
+  private readonly selector: Selector;
+
+  constructor(query: FilterQuery<any>, selector: Selector) {
+    super();
+    this.query = query;
+    this.selector = selector;
+  }
+
+  async select(value: any, collection: Collection<any>, stack: Stack) {
+    // Simply add a filter query to the current lazy array of documents and keep selecting from there :
+    if (value instanceof LazyDocuments)
+      return this.selector.select(value.extend(this.query), collection, stack);
+    throw new Error(
+      "Can't apply MongoDB filter query to non-lazy arrays of documents"
+    );
   }
 }
 
