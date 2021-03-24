@@ -5,15 +5,17 @@ import {
   CollectionInsertOneOptions,
   DbCollectionOptions,
   FindOneOptions,
+  InsertOneWriteOpResult,
+  InsertWriteOpResult,
   MongoCountPreferences,
   WithId
 } from "mongodb";
 import { isArray, isString } from "lodash";
 import {
   createDefaultConfig,
+  DependencyCollector,
   Document,
   FilterQuery,
-  InsertDependency,
   InsertionDoc,
   normalizeFilterQuery,
   normalizeInsertionDoc,
@@ -59,7 +61,7 @@ export class Collection<T extends Document> {
   }
 
   resolve(
-    document: undefined | null | T | Array<T>,
+    document: undefined | null | T | WithId<T> | Array<T> | Array<WithId<T>>,
     selector: string | Selector // TODO: SelectArgument ?
   ) {
     if (isString(selector)) selector = parseSelector(selector);
@@ -144,34 +146,41 @@ export class Collection<T extends Document> {
 
   async insert(
     doc: InsertionDoc<T>,
-    options?: CollectionInsertOneOptions
+    options?: CollectionInsertOneOptions,
+    dependencies?: DependencyCollector
   ): Promise<WithId<T>>;
 
   async insert(
     docs: Array<InsertionDoc<T>>,
-    options?: CollectionInsertManyOptions
+    options?: CollectionInsertManyOptions,
+    dependencies?: DependencyCollector
   ): Promise<Array<WithId<T>>>;
 
   async insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertOneOptions | CollectionInsertManyOptions
-  ): Promise<WithId<T> | Array<WithId<T>>>;
-
-  async insert(
-    doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertOneOptions | CollectionInsertManyOptions
+    options?: CollectionInsertOneOptions | CollectionInsertManyOptions,
+    dependencies: DependencyCollector = new DependencyCollector(this.rongo)
   ) {
-    const col = await this.handle;
-    const dependencies = new InsertDependency(this.rongo);
     try {
+      const col = await this.handle;
       const normalized = await normalizeInsertionDoc(this, doc, dependencies);
+      let result:
+        | InsertOneWriteOpResult<WithId<T>>
+        | InsertWriteOpResult<WithId<T>>;
+      let documents: WithId<T> | Array<WithId<T>>;
       if (!isArray(normalized)) {
-        const result = await col.insertOne(normalized, options);
-        return result.ops[0];
+        result = await col.insertOne(normalized, options);
+        documents = result.ops[0];
       } else {
-        const result = await col.insertMany(normalized, options);
-        return result.ops;
+        result = await col.insertMany(normalized, options);
+        documents = result.ops;
       }
+      dependencies.add(this, this.resolve(documents, this.primaryKey));
+      if (!result.result.ok)
+        throw new Error(
+          `Something went wrong in the MongoDB driver during insert in collection <${this.name}>`
+        );
+      return documents;
     } catch (e) {
       await dependencies.delete();
       throw e;

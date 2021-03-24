@@ -1,9 +1,10 @@
-import { entries } from "lodash";
+import { entries, isArray } from "lodash";
 import { Collection, Rongo } from "../.";
 
-// This class is used to keep track of all the inserted foreign documents as part of an insert instruction
+// This class is used to collect document references across the database (can be used for nested inserts error
+// clean-ups, or cascade delete documents, etc.)
 
-export class InsertDependency {
+export class DependencyCollector {
   rongo: Rongo;
   dependencies: {
     [collection: string]: Array<any>;
@@ -14,10 +15,10 @@ export class InsertDependency {
     this.dependencies = Object.create(null);
   }
 
-  add(collection: Collection<any>, key: any) {
+  add(collection: Collection<any>, keys: any | Array<any>) {
     if (!(collection.name in this.dependencies))
       this.dependencies[collection.name] = [];
-    this.dependencies[collection.name].push(key);
+    this.dependencies[collection.name].push(...(isArray(keys) ? keys : [keys]));
   }
 
   async delete() {
@@ -25,5 +26,6 @@ export class InsertDependency {
       const collection = this.rongo.collection(collectionName);
       await collection.deleteMany({ [collection.primaryKey]: { $in: keys } });
     }
+    this.dependencies = Object.create(null);
   }
 }
