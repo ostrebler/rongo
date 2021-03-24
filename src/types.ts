@@ -1,3 +1,6 @@
+import { FindOneOptions, WithId } from "mongodb";
+import { FilterQuery } from "./patch";
+
 // Used to store the collection dependencies in an optimally exploitable manner :
 
 export type Graph = {
@@ -67,3 +70,25 @@ export type Document = object;
 // Used to locate a key with precision
 
 export type Path = Array<string>;
+
+// Used by collection select ops to type-check selectable resource :
+
+export type Selectable<T extends Document> =
+  | T
+  | WithId<T>
+  | Array<T>
+  | Array<WithId<T>>;
+
+// Used by collection select ops :
+
+export type CollectionSelector<T extends Document> = {
+  (document: Selectable<T>): Promise<any>;
+  find(
+    query?: FilterQuery<T>,
+    options?: FindOneOptions<T extends T ? T : T>
+  ): Promise<any>;
+  findOne(
+    query?: FilterQuery<T>,
+    options?: FindOneOptions<T extends T ? T : T>
+  ): Promise<any>;
+};

@@ -54,7 +54,7 @@ export function normalizeInsertionDoc<T extends Document>(
         // Keys can't be plain objects, so if that's the case, it's a foreign insertion document :
         if (isPlainObject(value)) {
           const doc = await foreignCol.insert(value, {}, dependencies);
-          value = await foreignCol.resolve(doc, foreignCol.primaryKey);
+          value = await foreignCol.select(foreignCol.primaryKey, doc);
         }
 
         // If verification is on, check if "value" points to a valid foreign document :
@@ -76,7 +76,7 @@ export function normalizeInsertionDoc<T extends Document>(
           value.map(async item => {
             if (!isPlainObject(item)) return item;
             const doc = await foreignCol.insert(item, {}, dependencies);
-            return foreignCol.resolve(doc, foreignCol.primaryKey);
+            return foreignCol.select(foreignCol.primaryKey, doc);
           })
         );
 

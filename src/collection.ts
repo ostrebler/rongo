@@ -12,6 +12,7 @@ import {
 } from "mongodb";
 import { isArray, isString } from "lodash";
 import {
+  CollectionSelector,
   createDefaultConfig,
   DependencyCollector,
   Document,
@@ -22,6 +23,7 @@ import {
   parseSelector,
   Rongo,
   select,
+  Selectable,
   SelectArgument,
   Selector
 } from ".";
@@ -56,16 +58,31 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
-  select(chunks: TemplateStringsArray, ...args: Array<SelectArgument>) {
-    return select(chunks, ...args).in(this);
-  }
+  select(selector: string | Selector): CollectionSelector<T>;
 
-  resolve(
-    document: undefined | null | T | WithId<T> | Array<T> | Array<WithId<T>>,
-    selector: string | Selector // TODO: SelectArgument ?
+  select(selector: string | Selector, document: Selectable<T>): Promise<any>;
+
+  select(
+    chunks: TemplateStringsArray,
+    ...args: Array<SelectArgument>
+  ): CollectionSelector<T>;
+
+  select(
+    chunks: string | Selector | TemplateStringsArray,
+    arg?: Selectable<T> | SelectArgument,
+    ...args: Array<SelectArgument>
   ) {
-    if (isString(selector)) selector = parseSelector(selector);
-    return selector.select(document, this, []);
+    if (isString(chunks)) chunks = parseSelector(chunks);
+    if (!(chunks instanceof Selector)) chunks = select(chunks, [arg, ...args]);
+    else if (arg !== undefined) return chunks.apply(arg, this, []);
+    const selector = chunks;
+    const collectionSelector: CollectionSelector<T> = document =>
+      selector.apply(document, this, []);
+    collectionSelector.find = async (query, options) =>
+      selector.apply(await this.find(query, options), this, []);
+    collectionSelector.findOne = async (query, options) =>
+      selector.apply(await this.findOne(query, options), this, []);
+    return collectionSelector;
   }
 
   async aggregate<U = T>(
@@ -98,48 +115,6 @@ export class Collection<T extends Document> {
     const col = await this.handle;
     const normalized = await normalizeFilterQuery(this, query);
     return col.findOne(normalized, options);
-  }
-
-  async findResolve<K extends keyof T>(
-    query?: FilterQuery<T>,
-    selector?: K,
-    options?: FindOneOptions<T>
-  ): Promise<Array<T[K]>>;
-
-  async findResolve(
-    query?: FilterQuery<T>,
-    selector?: string | Selector,
-    options?: FindOneOptions<T>
-  ): Promise<any>;
-
-  async findResolve(
-    query: FilterQuery<T> = {},
-    selector: string | Selector = this.primaryKey,
-    options?: FindOneOptions<T extends T ? T : T>
-  ) {
-    const documents = await this.find(query, options);
-    return this.resolve(documents, selector);
-  }
-
-  async findOneResolve<K extends keyof T>(
-    query?: FilterQuery<T>,
-    selector?: K,
-    options?: FindOneOptions<T>
-  ): Promise<T[K]>;
-
-  async findOneResolve(
-    query?: FilterQuery<T>,
-    selector?: string | Selector,
-    options?: FindOneOptions<T>
-  ): Promise<any>;
-
-  async findOneResolve(
-    query: FilterQuery<T> = {},
-    selector: string | Selector = this.primaryKey,
-    options?: FindOneOptions<T extends T ? T : T>
-  ) {
-    const document = await this.findOne(query, options);
-    return this.resolve(document, selector);
   }
 
   // Insert methods :
@@ -175,7 +150,7 @@ export class Collection<T extends Document> {
         result = await col.insertMany(normalized, options);
         documents = result.ops;
       }
-      dependencies.add(this, this.resolve(documents, this.primaryKey));
+      dependencies.add(this, await this.select(this.primaryKey, documents));
       if (!result.result.ok)
         throw new Error(
           `Something went wrong in the MongoDB driver during insert in collection <${this.name}>`

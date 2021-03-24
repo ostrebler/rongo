@@ -43,21 +43,15 @@ type MongoAltQuery<T> = T extends ReadonlyArray<infer U>
 
 /** @see https://docs.mongodb.com/manual/reference/operator/query/#query-selectors */
 export type QuerySelector<T> = {
-  // RONGO PATCH
-  $$in?: FilterQuery<any>;
-  $$nin?: FilterQuery<any>;
-  $$eq?: FilterQuery<any>;
-  $$ne?: FilterQuery<any>;
-  // END PATCH
   // Comparison
   $eq?: T;
   $gt?: T;
   $gte?: T;
-  $in?: T[];
+  $in?: T[] | FilterQuery<any>; // PATCHED
   $lt?: T;
   $lte?: T;
   $ne?: T;
-  $nin?: T[];
+  $nin?: T[] | FilterQuery<any>; // PATCHED
   // Logical
   $not?: T extends string ? QuerySelector<T> | RegExp : QuerySelector<T>;
   // Element
