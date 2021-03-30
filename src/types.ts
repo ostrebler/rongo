@@ -1,5 +1,5 @@
-import { FindOneOptions, WithId } from "mongodb";
-import { FilterQuery } from "./patch";
+import { WithId } from "mongodb";
+import { SelectArgument, Selector } from ".";
 
 // Used to store the collection dependencies in an optimally exploitable manner :
 
@@ -74,21 +74,19 @@ export type Path = Array<string>;
 // Used by collection select ops to type-check selectable resource :
 
 export type Selectable<T extends Document> =
+  | null
+  | undefined
   | T
   | WithId<T>
   | Array<T>
   | Array<WithId<T>>;
 
-// Used by collection select ops :
+// Used by collection to add selection to promises
 
-export type CollectionSelector<T extends Document> = {
-  (document: Selectable<T>): Promise<any>;
-  find(
-    query?: FilterQuery<T>,
-    options?: FindOneOptions<T extends T ? T : T>
-  ): Promise<any>;
-  findOne(
-    query?: FilterQuery<T>,
-    options?: FindOneOptions<T extends T ? T : T>
+export type SelectablePromise<T> = Promise<T> & {
+  select(selector: string | Selector): Promise<any>;
+  select(
+    chunks: TemplateStringsArray,
+    ...args: Array<SelectArgument>
   ): Promise<any>;
 };

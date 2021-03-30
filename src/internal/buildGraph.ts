@@ -76,7 +76,7 @@ export function buildGraph(schema: unknown) {
 
 const id = "([a-zA-Z_-][a-zA-Z0-9_-]*)";
 
-export const isSchema = new Ajv().compile<Schema>({
+const isSchema = new Ajv().compile<Schema>({
   type: "object",
   additionalProperties: false,
   patternProperties: {

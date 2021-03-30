@@ -19,7 +19,7 @@ import {
 //
 // selector:
 // | <>                                              { IdentitySelector }
-// | <field> selector                                { FieldSelector(field, arg, selector) }
+// | <field> selector                                { FieldSelector(field, selector) }
 // | <index> selector                                { IndexSelector(index, selector) }
 // | <>> selector                                    { ShortcutSelector(selector) }
 // | <$> selector                                    { MapSelector(selector) }

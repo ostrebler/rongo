@@ -12,7 +12,6 @@ import {
 } from "mongodb";
 import { isArray, isString } from "lodash";
 import {
-  CollectionSelector,
   createDefaultConfig,
   DependencyCollector,
   Document,
@@ -22,18 +21,18 @@ import {
   normalizeInsertionDoc,
   parseSelector,
   Rongo,
-  select,
   Selectable,
-  SelectArgument,
+  SelectablePromise,
+  selectablePromise,
   Selector
 } from ".";
 
 // The Collection class
 
 export class Collection<T extends Document> {
-  name: string;
-  rongo: Rongo;
-  handle: Promise<Col<T>>;
+  readonly name: string;
+  readonly rongo: Rongo;
+  readonly handle: Promise<Col<T>>;
 
   constructor(rongo: Rongo, name: string, options: DbCollectionOptions = {}) {
     this.name = name;
@@ -58,31 +57,9 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
-  select(selector: string | Selector): CollectionSelector<T>;
-
-  select(selector: string | Selector, document: Selectable<T>): Promise<any>;
-
-  select(
-    chunks: TemplateStringsArray,
-    ...args: Array<SelectArgument>
-  ): CollectionSelector<T>;
-
-  select(
-    chunks: string | Selector | TemplateStringsArray,
-    arg?: Selectable<T> | SelectArgument,
-    ...args: Array<SelectArgument>
-  ) {
-    if (isString(chunks)) chunks = parseSelector(chunks);
-    if (!(chunks instanceof Selector)) chunks = select(chunks, [arg, ...args]);
-    else if (arg !== undefined) return chunks.apply(arg, this, []);
-    const selector = chunks;
-    const collectionSelector: CollectionSelector<T> = document =>
-      selector.apply(document, this, []);
-    collectionSelector.find = async (query, options) =>
-      selector.apply(await this.find(query, options), this, []);
-    collectionSelector.findOne = async (query, options) =>
-      selector.apply(await this.findOne(query, options), this, []);
-    return collectionSelector;
+  resolve(selector: string | Selector, document: Selectable<T>) {
+    if (isString(selector)) selector = parseSelector(selector);
+    return selector.resolve(document, this, []);
   }
 
   async aggregate<U = T>(
@@ -99,67 +76,79 @@ export class Collection<T extends Document> {
     return col.countDocuments(normalized, options);
   }
 
-  async find<U = T>(
-    query: FilterQuery<T> = {},
-    options?: FindOneOptions<U extends T ? T : U>
-  ) {
-    const col = await this.handle;
-    const normalized = await normalizeFilterQuery(this, query);
-    return col.find<U>(normalized, options ?? {}).toArray();
+  find(query: FilterQuery<T> = {}, options?: FindOneOptions<T>) {
+    const exec = async () => {
+      const col = await this.handle;
+      const normalized = await normalizeFilterQuery(this, query);
+      return col.find(normalized, options as any).toArray();
+    };
+    return selectablePromise(this, exec());
   }
 
-  async findOne<U = T>(
+  findOne(
     query: FilterQuery<T> = {},
-    options?: FindOneOptions<U extends T ? T : U>
+    options?: FindOneOptions<T extends T ? T : T>
   ) {
-    const col = await this.handle;
-    const normalized = await normalizeFilterQuery(this, query);
-    return col.findOne(normalized, options);
+    const exec = async () => {
+      const col = await this.handle;
+      const normalized = await normalizeFilterQuery(this, query);
+      return col.findOne(normalized, options);
+    };
+    return selectablePromise(this, exec());
   }
 
-  // Insert methods :
+  // Insert method :
 
-  async insert(
+  insert(
     doc: InsertionDoc<T>,
     options?: CollectionInsertOneOptions,
     dependencies?: DependencyCollector
-  ): Promise<WithId<T>>;
+  ): SelectablePromise<WithId<T>>;
 
-  async insert(
+  insert(
     docs: Array<InsertionDoc<T>>,
     options?: CollectionInsertManyOptions,
     dependencies?: DependencyCollector
-  ): Promise<Array<WithId<T>>>;
+  ): SelectablePromise<Array<WithId<T>>>;
 
-  async insert(
+  insert(
+    doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
+    options?: CollectionInsertOneOptions | CollectionInsertManyOptions,
+    dependencies?: DependencyCollector
+  ): SelectablePromise<WithId<T> | Array<WithId<T>>>;
+
+  insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
     options?: CollectionInsertOneOptions | CollectionInsertManyOptions,
     dependencies: DependencyCollector = new DependencyCollector(this.rongo)
   ) {
-    try {
-      const col = await this.handle;
-      const normalized = await normalizeInsertionDoc(this, doc, dependencies);
-      let result:
-        | InsertOneWriteOpResult<WithId<T>>
-        | InsertWriteOpResult<WithId<T>>;
-      let documents: WithId<T> | Array<WithId<T>>;
-      if (!isArray(normalized)) {
-        result = await col.insertOne(normalized, options);
-        documents = result.ops[0];
-      } else {
-        result = await col.insertMany(normalized, options);
-        documents = result.ops;
+    const exec = async () => {
+      try {
+        const col = await this.handle;
+        const normalized = await normalizeInsertionDoc(this, doc, dependencies);
+        let result:
+          | InsertOneWriteOpResult<WithId<T>>
+          | InsertWriteOpResult<WithId<T>>;
+        let documents: WithId<T> | Array<WithId<T>>;
+        if (!isArray(normalized)) {
+          result = await col.insertOne(normalized, options);
+          documents = result.ops[0];
+        } else {
+          result = await col.insertMany(normalized, options);
+          documents = result.ops;
+        }
+        dependencies.add(this, await this.resolve(this.primaryKey, documents));
+        if (!result.result.ok)
+          throw new Error(
+            `Something went wrong in the MongoDB driver during insert in collection <${this.name}>`
+          );
+        return documents;
+      } catch (e) {
+        await dependencies.delete();
+        throw e;
       }
-      dependencies.add(this, await this.select(this.primaryKey, documents));
-      if (!result.result.ok)
-        throw new Error(
-          `Something went wrong in the MongoDB driver during insert in collection <${this.name}>`
-        );
-      return documents;
-    } catch (e) {
-      await dependencies.delete();
-      throw e;
-    }
+    };
+    return selectablePromise(this, exec());
   }
 
   // Delete methods :

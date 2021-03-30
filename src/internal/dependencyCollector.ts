@@ -1,12 +1,11 @@
 import { entries, isArray } from "lodash";
 import { Collection, Rongo } from "../.";
 
-// This class is used to collect document references across the database (can be used for nested inserts error
-// clean-ups, or cascade delete documents, etc.)
+// This class is used to collect document references across the database (used for nested inserts clean-ups)
 
 export class DependencyCollector {
-  rongo: Rongo;
-  dependencies: {
+  private readonly rongo: Rongo;
+  private dependencies: {
     [collection: string]: Array<any>;
   };
 

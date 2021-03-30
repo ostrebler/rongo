@@ -1,5 +1,6 @@
 import { flatten, isArray, isPlainObject, keys } from "lodash";
 import {
+  asyncFilter,
   Collection,
   FilterQuery,
   LazyDocuments,
@@ -12,7 +13,7 @@ import {
 //
 // selector:
 // | <>                                              { IdentitySelector }
-// | <field> selector                                { FieldSelector(field, arg, selector) }
+// | <field> selector                                { FieldSelector(field, selector) }
 // | <index> selector                                { IndexSelector(index, selector) }
 // | <>> selector                                    { ShortcutSelector(selector) }
 // | <$> selector                                    { MapSelector(selector) }
@@ -33,7 +34,7 @@ import {
 // The Selector base class defines the abstract signature of a selector
 
 export abstract class Selector {
-  abstract apply(
+  abstract resolve(
     value: any,
     collection: Collection<any>,
     stack: Stack
@@ -44,7 +45,7 @@ export abstract class Selector {
 // mainly used to "end" selection chains with a non-optional "leaf" selector
 
 export class IdentitySelector extends Selector {
-  async apply(value: any) {
+  async resolve(value: any) {
     return value instanceof LazyDocuments ? value.fetch() : value;
   }
 }
@@ -61,14 +62,14 @@ export class FieldSelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(
+  async resolve(
     value: any,
     collection: Collection<any>,
     stack: Stack
   ): Promise<any> {
     // If the current value is an array, insert an implicit mapping :
     if (isArray(value) || value instanceof LazyDocuments)
-      return new MapSelector(this).apply(value, collection, stack);
+      return new MapSelector(this).resolve(value, collection, stack);
     // Otherwise, it has to be an object :
     if (!isPlainObject(value))
       throw new Error(
@@ -101,7 +102,7 @@ export class FieldSelector extends Selector {
       stack = [];
     }
 
-    return this.selector.apply(value, collection, stack);
+    return this.selector.resolve(value, collection, stack);
   }
 }
 
@@ -117,14 +118,14 @@ export class IndexSelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     // If the current value if arrayish, simply access to the targeted item :
     if (isArray(value)) value = value[this.index];
     else if (value instanceof LazyDocuments)
       value = await value.fetchOne(this.index);
     else
       throw new Error(`Can't resolve index <${this.index}> in non-array value`);
-    return this.selector.apply(value, collection, [...stack, this.index]);
+    return this.selector.resolve(value, collection, [...stack, this.index]);
   }
 }
 
@@ -138,9 +139,9 @@ export class ShortcutSelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     if (value === null || value === undefined) return value;
-    return this.selector.apply(value, collection, stack);
+    return this.selector.resolve(value, collection, stack);
   }
 }
 
@@ -154,14 +155,14 @@ export class MapSelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value)) throw new Error("Can't map ($) a non-array value");
     // Map the items to subselections :
     return Promise.all(
       value.map((item, index) =>
-        this.selector.apply(item, collection, [...stack, index])
+        this.selector.resolve(item, collection, [...stack, index])
       )
     );
   }
@@ -177,7 +178,7 @@ export class FlatMapSelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value))
@@ -186,7 +187,7 @@ export class FlatMapSelector extends Selector {
     return flatten(
       await Promise.all(
         value.map((item, index) =>
-          this.selector.apply(item, collection, [...stack, index])
+          this.selector.resolve(item, collection, [...stack, index])
         )
       )
     );
@@ -205,21 +206,17 @@ export class FilterSelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value))
       throw new Error("Can't apply a predicate filter to a non-array value");
-    // Async version of Array.prototype.filter :
-    value = await value.reduce<Promise<Array<any>>>(
-      async (acc, item, index) =>
-        (await this.predicate(item, index, value))
-          ? [...(await acc), item]
-          : acc,
-      Promise.resolve([])
+    // Keep selection going on async-filtered array :
+    return this.selector.resolve(
+      await asyncFilter(value, this.predicate),
+      collection,
+      stack
     );
-    // Keep selection going on filtered array :
-    return this.selector.apply(value, collection, stack);
   }
 }
 
@@ -241,12 +238,12 @@ export class SwitchSelector extends Selector {
     this.elseSelector = elseSelector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     // If it's an array, all items are needed, so unlazy lazy arrays :
     if (value instanceof LazyDocuments) value = await value.fetch();
     return this[
       (await this.predicate(value, -1, [])) ? "ifSelector" : "elseSelector"
-    ].apply(value, collection, stack);
+    ].resolve(value, collection, stack);
   }
 }
 
@@ -262,10 +259,10 @@ export class FilterQuerySelector extends Selector {
     this.selector = selector;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     // Simply add a filter query to the current lazy array of documents and keep selecting from there :
     if (value instanceof LazyDocuments)
-      return this.selector.apply(value.extend(this.query), collection, stack);
+      return this.selector.resolve(value.extend(this.query), collection, stack);
     throw new Error(
       "Can't apply MongoDB filter query to non-lazy arrays of documents"
     );
@@ -282,9 +279,9 @@ export class TupleSelector extends Selector {
     this.selectors = selectors;
   }
 
-  async apply(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(value: any, collection: Collection<any>, stack: Stack) {
     return Promise.all(
-      this.selectors.map(selector => selector.apply(value, collection, stack))
+      this.selectors.map(selector => selector.resolve(value, collection, stack))
     );
   }
 }
@@ -299,14 +296,14 @@ export class ObjectSelector extends Selector {
     this.selectors = selectors;
   }
 
-  async apply(
+  async resolve(
     value: any,
     collection: Collection<any>,
     stack: Stack
   ): Promise<any> {
     // If the current value is an array, insert implicit mapping :
     if (isArray(value) || value instanceof LazyDocuments)
-      return new MapSelector(this).apply(value, collection, stack);
+      return new MapSelector(this).resolve(value, collection, stack);
     // Otherwise, it has to be an object :
     if (!isPlainObject(value))
       throw new Error(
@@ -316,7 +313,7 @@ export class ObjectSelector extends Selector {
     for (const [field, selector] of this.selectors)
       if (field !== "*") {
         // Each field definition adds a field to the result and a field-subselection from there on :
-        result[field] = await new FieldSelector(field, selector).apply(
+        result[field] = await new FieldSelector(field, selector).resolve(
           value,
           collection,
           stack
@@ -325,7 +322,7 @@ export class ObjectSelector extends Selector {
         // In the case of a wildcard field, do the same as above with the remaining keys in "value" :
         for (const field of keys(value))
           if (!this.selectors.has(field))
-            result[field] = await new FieldSelector(field, selector).apply(
+            result[field] = await new FieldSelector(field, selector).resolve(
               value,
               collection,
               stack

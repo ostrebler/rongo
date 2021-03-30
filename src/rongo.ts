@@ -10,10 +10,11 @@ import { buildGraph, Collection, Document, Graph, loadSchema, Schema } from ".";
 // The Rongo class
 
 export class Rongo {
-  name: string;
+  readonly name: string;
   graph: Graph;
-  client: Promise<MongoClient>;
-  handle: Promise<Db>;
+  readonly client: Promise<MongoClient>;
+  readonly handle: Promise<Db>;
+  active: boolean;
 
   constructor(uri: string, name: string, options?: MongoClientOptions) {
     this.name = name;
@@ -23,11 +24,10 @@ export class Rongo {
       ...options
     });
     this.handle = this.client.then(client => client.db(name));
-  }
-
-  async active() {
-    const client = await this.client;
-    return client.isConnected();
+    this.active = false;
+    this.client.then(client => {
+      this.active = client.isConnected();
+    });
   }
 
   schema(schema: Schema | string) {
@@ -48,6 +48,7 @@ export class Rongo {
 
   async disconnect() {
     const client = await this.client;
-    return client.close();
+    await client.close();
+    this.active = client.isConnected();
   }
 }

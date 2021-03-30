@@ -47,11 +47,11 @@ export type QuerySelector<T> = {
   $eq?: T;
   $gt?: T;
   $gte?: T;
-  $in?: T[] | FilterQuery<any>; // PATCHED
+  $in?: Array<T | FilterQuery<any>> | FilterQuery<any>; // PATCHED
   $lt?: T;
   $lte?: T;
   $ne?: T;
-  $nin?: T[] | FilterQuery<any>; // PATCHED
+  $nin?: Array<T | FilterQuery<any>> | FilterQuery<any>; // PATCHED
   // Logical
   $not?: T extends string ? QuerySelector<T> | RegExp : QuerySelector<T>;
   // Element

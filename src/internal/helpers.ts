@@ -1,9 +1,20 @@
 import { ObjectId } from "mongodb";
-import { isString } from "lodash";
+import { assign, isString } from "lodash";
 import { extname } from "path";
 import { readFileSync } from "fs";
 import YAML from "yaml";
-import { CollectionConfig, Stack } from "../.";
+import {
+  Collection,
+  CollectionConfig,
+  Document,
+  parseSelector,
+  select,
+  Selectable,
+  SelectablePromise,
+  SelectArgument,
+  Selector,
+  Stack
+} from "../.";
 
 // ObjectId is being reexported for practicality
 
@@ -39,4 +50,41 @@ export function loadSchema(fileName: string): unknown {
     default:
       throw new Error(`Unknown file extension <${extension}> for Rongo schema`);
   }
+}
+
+// This function is an async version of Array.prototype.filter
+
+export function asyncFilter<T>(
+  array: Array<T>,
+  predicate: (
+    item: T,
+    index: number,
+    array: Array<T>
+  ) => boolean | Promise<boolean>
+) {
+  return array.reduce<Promise<Array<T>>>(
+    async (acc, item, index) =>
+      (await predicate(item, index, array)) ? [...(await acc), item] : acc,
+    Promise.resolve([])
+  );
+}
+
+// This function patches Promises to make them selectable
+
+export function selectablePromise<T extends Document, S extends Selectable<T>>(
+  collection: Collection<T>,
+  promise: Promise<S>
+): SelectablePromise<S> {
+  return assign(promise, {
+    select(
+      chunks: TemplateStringsArray | string | Selector,
+      ...args: Array<SelectArgument>
+    ) {
+      let selector: Selector;
+      if (isString(chunks)) selector = parseSelector(chunks);
+      else if (chunks instanceof Selector) selector = chunks;
+      else selector = select(chunks, ...args);
+      return promise.then(result => collection.resolve(selector, result));
+    }
+  });
 }
