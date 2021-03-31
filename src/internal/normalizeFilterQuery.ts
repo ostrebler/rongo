@@ -19,49 +19,44 @@ export function normalizeFilterQuery<T extends Document>(
     // If there's an $expr, it has to be ignored by the normalizing process :
     if ($expr) normalized.$expr = $expr;
 
-    // If there's an $in and/or $nin operator :
-    if ($in || $nin) {
-      // Check the current key :
-      const key = stackToKey(stack);
-      // Get the foreign key config if one exists :
-      const foreignKeyConfig = collection.foreignKeys[key];
-      // If the $in and/or $nin applies to a foreign key :
-      if (foreignKeyConfig) {
-        // Get the foreign collection :
-        const foreignCol = collection.rongo.collection(
-          foreignKeyConfig.collection
-        );
+    // Check the current key :
+    const key = stackToKey(stack);
+    // Get the foreign key config if one exists :
+    const foreignKeyConfig = collection.foreignKeys[key];
+    // If we're at a foreign key location :
+    if (foreignKeyConfig) {
+      // Get the foreign collection :
+      const foreignCol = collection.rongo.collection(
+        foreignKeyConfig.collection
+      );
 
-        // This function transforms augmented $in-like values to regular values :
-        const normalizeQuerySelectorList = (list: unknown) => {
-          if (list === undefined) return undefined;
-          // If it's a foreign filter query :
-          if (isPlainObject(list))
-            return findPrimaryKeys(foreignCol, list as FilterQuery<any>);
-          // If it's an array of keys and/or foreign filter queries :
-          if (isArray(list))
-            return list.reduce<Promise<Array<any>>>(
-              async (acc, item) =>
-                isPlainObject(item)
-                  ? [
-                      ...(await acc),
-                      ...(await findPrimaryKeys(foreignCol, item))
-                    ]
-                  : [...(await acc), item],
-              Promise.resolve([])
-            );
-          throw new Error(
-            `Invalid query selector for foreign key <${key}> in collection <${collection.name}> : <$in> and <$nin> selectors must be arrays or foreign filter queries`
+      // This function transforms augmented $in-like values to regular values :
+      const normalizeQuerySelectorList = (list: unknown) => {
+        if (list === undefined) return undefined;
+        // If it's a foreign filter query :
+        if (isPlainObject(list))
+          return findPrimaryKeys(foreignCol, list as FilterQuery<any>);
+        // If it's an array of keys and/or foreign filter queries :
+        if (isArray(list))
+          return list.reduce<Promise<Array<any>>>(
+            async (acc, item) =>
+              isPlainObject(item)
+                ? [...(await acc), ...(await findPrimaryKeys(foreignCol, item))]
+                : [...(await acc), item],
+            Promise.resolve([])
           );
-        };
+        throw new Error(
+          `Invalid query selector for foreign key <${key}> in collection <${collection.name}> : <$in> and <$nin> selectors must be arrays or foreign filter queries`
+        );
+      };
 
-        $in = await normalizeQuerySelectorList($in);
-        $nin = await normalizeQuerySelectorList($nin);
-      }
-      // Put the selectors back to the final result :
-      if ($in) normalized.$in = $in;
-      if ($nin) normalized.$nin = $nin;
+      $in = await normalizeQuerySelectorList($in);
+      $nin = await normalizeQuerySelectorList($nin);
     }
+
+    // Put the selectors back to the final result :
+    if ($in) normalized.$in = $in;
+    if ($nin) normalized.$nin = $nin;
 
     return normalized;
   });
