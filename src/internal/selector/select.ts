@@ -1,5 +1,5 @@
 import { isNumber, isString } from "lodash";
-import { parseSelector, SelectArgument, SelectSymbolEntry } from ".";
+import { parseSelector, SelectArgument, SymTable } from ".";
 
 // This function serves as a template literal tag to build selectors :
 
@@ -7,7 +7,7 @@ export function select(
   chunks: TemplateStringsArray,
   ...args: Array<SelectArgument>
 ) {
-  const symTable = new Map<string, SelectSymbolEntry>();
+  const symTable: SymTable = new Map();
   const raw = chunks.reduce((acc, chunk, index) => {
     const arg = args[index - 1];
     // If the argument is a number or a string, it is directly patched :

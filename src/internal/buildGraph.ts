@@ -14,7 +14,7 @@ import {
 export function buildGraph(schema: unknown) {
   if (!isSchema(schema))
     throw new Error(
-      "The schema is invalid, please refer to the doc make sure it has the correct structure and follows the expected key patterns"
+      "The schema is invalid, please refer to the doc to make sure it has the correct structure and follows the expected key patterns"
     );
 
   const graph: Graph = Object.create(null);
@@ -27,7 +27,6 @@ export function buildGraph(schema: unknown) {
 
     // Setup what we know regarding this collection at this point :
     config.primaryKey = partialConfig.primary ?? "_id";
-    config.foreignKeys = Object.create(null);
 
     // For each foreign key in the current collection :
     for (const [pathStr, pathConfig] of entries(partialConfig.foreign ?? {})) {

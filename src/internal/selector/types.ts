@@ -20,3 +20,7 @@ export type SelectArgument =
 // The possible entries in the symbol table
 
 export type SelectSymbolEntry = Exclude<SelectArgument, string | number>;
+
+// The selector parsing symbol table
+
+export type SymTable = Map<string, SelectSymbolEntry>;

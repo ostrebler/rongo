@@ -19,10 +19,31 @@ export function normalizeFilterQuery<T extends Document>(
         foreignKeyConfig.collection
       );
 
-      // If there is any foreign filter query, it's primary keys get merged with the explicit keys :
+      // If there is any foreign filter query, its primary keys get merged with the explicit keys :
       let { $in, $nin, ...props } = value;
-      $in = await normalizeQuerySelectorList(foreignCol, $in);
-      $nin = await normalizeQuerySelectorList(foreignCol, $nin);
+
+      // This function transforms augmented $in-like values to regular values :
+      const normalizeQuerySelectorList = (list: unknown) => {
+        if (list === undefined) return undefined;
+        // If it's a foreign filter query :
+        if (isPlainObject(list))
+          return findPrimaryKeys(foreignCol, list as FilterQuery<any>);
+        // If it's an array of keys and/or foreign filter queries :
+        if (isArray(list))
+          return list.reduce<Promise<Array<any>>>(
+            async (acc, item) =>
+              isPlainObject(item)
+                ? [...(await acc), ...(await findPrimaryKeys(foreignCol, item))]
+                : [...(await acc), item],
+            Promise.resolve([])
+          );
+        throw new Error(
+          `Invalid query selector for foreign key <${key}> in collection <${collection.name}> : <$in> and <$nin> selectors must be arrays or foreign filter queries`
+        );
+      };
+
+      $in = await normalizeQuerySelectorList($in);
+      $nin = await normalizeQuerySelectorList($nin);
 
       return {
         // The rest still needs to get recursively checked :
@@ -38,19 +59,4 @@ export function normalizeFilterQuery<T extends Document>(
 
 function findPrimaryKeys(collection: Collection<any>, query: FilterQuery<any>) {
   return collection.find(query).select(collection.primaryKey);
-}
-
-// This function transforms augmented $in-like values to regular values
-
-function normalizeQuerySelectorList(collection: Collection<any>, list: any) {
-  if (isPlainObject(list)) return findPrimaryKeys(collection, list);
-  if (isArray(list))
-    return list.reduce<Promise<Array<any>>>(
-      async (acc, item) =>
-        isPlainObject(item)
-          ? [...(await acc), ...(await findPrimaryKeys(collection, item))]
-          : [...(await acc), item],
-      Promise.resolve([])
-    );
-  return list;
 }

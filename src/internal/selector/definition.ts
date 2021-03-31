@@ -29,7 +29,7 @@ import {
 //   <}>                                             { ObjectSelector(...[field, selector]) }
 //
 // spacing:
-// | <[.\s]+>
+// | <[.\s]*>
 
 // The Selector base class defines the abstract signature of a selector
 
@@ -41,8 +41,7 @@ export abstract class Selector {
   ): Promise<any>;
 }
 
-// The IdentitySelector represents the "empty selector", it returns the value it was passed, unchanged ; It is
-// mainly used to "end" selection chains with a non-optional "leaf" selector
+// The IdentitySelector represents the "empty selector", it returns the value it was passed, unchanged
 
 export class IdentitySelector extends Selector {
   async resolve(value: any) {
@@ -220,7 +219,7 @@ export class FilterSelector extends Selector {
   }
 }
 
-// The SwitchSelector acts like a if-else statement
+// The SwitchSelector acts like an if-else statement
 
 export class SwitchSelector extends Selector {
   private readonly predicate: SelectorPredicateCallback;

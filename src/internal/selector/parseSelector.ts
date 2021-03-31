@@ -9,9 +9,9 @@ import {
   MapSelector,
   ObjectSelector,
   Selector,
-  SelectSymbolEntry,
   ShortcutSelector,
   SwitchSelector,
+  SymTable,
   TupleSelector
 } from ".";
 
@@ -35,15 +35,12 @@ import {
 //   <}>                                             { ObjectSelector(...[field, selector]) }
 //
 // spacing:
-// | <[.\s]+>
+// | <[.\s]*>
 
 // This function is used to transform a string to a valid Selector
 
-export function parseSelector(
-  raw: string,
-  symTable: Map<string, SelectSymbolEntry> = new Map()
-) {
-  const spacePattern = /(\s|\.)*/y;
+export function parseSelector(raw: string, symTable: SymTable = new Map()) {
+  const spacePattern = /[.\s]*/y;
   const fieldPattern = /[a-zA-Z_-][a-zA-Z0-9_-]*/y;
   const indexPattern = /[0-9]+/y;
   const symbolPattern = /@[0-9]+/y;
@@ -108,9 +105,7 @@ export function parseSelector(
       // ...or a filter selector :
       if (isPlainObject(argument))
         return new FilterQuerySelector(argument!, expr(index));
-      throw new Error(
-        `Invalid template argument <${result[0]}> in selector string`
-      );
+      return fail(`Invalid template argument <${result[0]}>`);
     }
 
     // If we have a tuple selector :

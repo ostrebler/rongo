@@ -1,12 +1,12 @@
 import { OptionalId } from "mongodb";
-import { isArray, isPlainObject, last } from "lodash";
+import { entries, isArray, isPlainObject, last } from "lodash";
 import {
   Collection,
-  DependencyCollector,
   Document,
   InsertionDoc,
   InsertPolicy,
   mapDeep,
+  Rongo,
   stackToKey
 } from "../.";
 
@@ -50,10 +50,10 @@ export function normalizeInsertionDoc<T extends Document>(
           `Non-array values can't be assigned to array foreign key <${key}> in collection <${collection.name}>`
         );
       // Keys can't be plain objects, so if that's the case, it's a foreign insertion document :
-      if (isPlainObject(value)) {
-        const doc = await foreignCol.insert(value, {}, dependencies);
-        value = await foreignCol.resolve(foreignCol.primaryKey, doc);
-      }
+      if (isPlainObject(value))
+        value = await foreignCol
+          .insert(value, {}, dependencies)
+          .select(foreignCol.primaryKey);
       // If verification is on, check if "value" points to a valid foreign document :
       if (foreignKeyConfig.onInsert === InsertPolicy.Verify)
         if (!(await foreignCol.count({ [foreignCol.primaryKey]: value })))
@@ -71,10 +71,11 @@ export function normalizeInsertionDoc<T extends Document>(
         );
       // We map the array and replace foreign insertion documents with their actual primary key after insertion :
       value = await Promise.all(
-        value.map(async item => {
+        value.map(item => {
           if (!isPlainObject(item)) return item;
-          const doc = await foreignCol.insert(item, {}, dependencies);
-          return foreignCol.resolve(foreignCol.primaryKey, doc);
+          return foreignCol
+            .insert(item, {}, dependencies)
+            .select(foreignCol.primaryKey);
         })
       );
       // If verification is on, check if every foreign key points to an actual foreign document :
@@ -92,4 +93,32 @@ export function normalizeInsertionDoc<T extends Document>(
     // Return final ready foreign key(s) :
     return value;
   });
+}
+
+// This class is used to collect document references across the database (used for nested insert clean-ups)
+
+export class DependencyCollector {
+  private readonly rongo: Rongo;
+  private dependencies: {
+    [collection: string]: Array<any>;
+  };
+
+  constructor(rongo: Rongo) {
+    this.rongo = rongo;
+    this.dependencies = Object.create(null);
+  }
+
+  add(collection: Collection<any>, keys: any | Array<any>) {
+    if (!(collection.name in this.dependencies))
+      this.dependencies[collection.name] = [];
+    this.dependencies[collection.name].push(...(isArray(keys) ? keys : [keys]));
+  }
+
+  async delete() {
+    for (const [collectionName, keys] of entries(this.dependencies)) {
+      const collection = this.rongo.collection(collectionName);
+      await collection.deleteMany({ [collection.primaryKey]: { $in: keys } });
+    }
+    this.dependencies = Object.create(null);
+  }
 }
