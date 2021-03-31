@@ -2,24 +2,27 @@ import {
   Collection as Col,
   CollectionAggregationOptions,
   CollectionInsertManyOptions,
-  CollectionInsertOneOptions,
+  CommonOptions,
   DbCollectionOptions,
   FindOneOptions,
-  InsertOneWriteOpResult,
-  InsertWriteOpResult,
   MongoCountPreferences,
+  UpdateManyOptions,
+  UpdateQuery,
   WithId
 } from "mongodb";
-import { isArray, isString } from "lodash";
+import { isString, take } from "lodash";
 import {
   createDefaultConfig,
+  DeletedKeys,
   DependencyCollector,
   Document,
   FilterQuery,
   InsertionDoc,
+  nestedInsert,
   normalizeFilterQuery,
-  normalizeInsertionDoc,
   parseSelector,
+  propagateRemove,
+  RemoveScheduler,
   Rongo,
   Selectable,
   SelectablePromise,
@@ -101,48 +104,27 @@ export class Collection<T extends Document> {
 
   insert(
     doc: InsertionDoc<T>,
-    options?: CollectionInsertOneOptions,
-    dependencies?: DependencyCollector
+    options?: CollectionInsertManyOptions
   ): SelectablePromise<WithId<T>>;
 
   insert(
     docs: Array<InsertionDoc<T>>,
-    options?: CollectionInsertManyOptions,
-    dependencies?: DependencyCollector
+    options?: CollectionInsertManyOptions
   ): SelectablePromise<Array<WithId<T>>>;
 
   insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertOneOptions | CollectionInsertManyOptions,
-    dependencies?: DependencyCollector
+    options?: CollectionInsertManyOptions
   ): SelectablePromise<WithId<T> | Array<WithId<T>>>;
 
   insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertOneOptions | CollectionInsertManyOptions,
-    dependencies: DependencyCollector = new DependencyCollector(this.rongo)
+    options?: CollectionInsertManyOptions
   ) {
     const exec = async () => {
+      const dependencies = new DependencyCollector(this.rongo);
       try {
-        const col = await this.handle;
-        const normalized = await normalizeInsertionDoc(this, doc, dependencies);
-        let result:
-          | InsertOneWriteOpResult<WithId<T>>
-          | InsertWriteOpResult<WithId<T>>;
-        let documents: WithId<T> | Array<WithId<T>>;
-        if (!isArray(normalized)) {
-          result = await col.insertOne(normalized, options);
-          documents = result.ops[0];
-        } else {
-          result = await col.insertMany(normalized, options);
-          documents = result.ops;
-        }
-        dependencies.add(this, await this.resolve(this.primaryKey, documents));
-        if (!result.result.ok)
-          throw new Error(
-            `Something went wrong in the MongoDB driver during insert in collection <${this.name}>`
-          );
-        return documents;
+        return nestedInsert(this, doc, options ?? {}, dependencies);
       } catch (e) {
         await dependencies.delete();
         throw e;
@@ -151,7 +133,38 @@ export class Collection<T extends Document> {
     return selectablePromise(this, exec());
   }
 
+  // Update methods :
+
+  async update(
+    query: FilterQuery<T>,
+    update: UpdateQuery<T> | Partial<T>,
+    options?: UpdateManyOptions & { multi?: boolean }
+  ) {
+    const col = await this.handle;
+    const normalized = await normalizeFilterQuery(this, query);
+    return col[options?.multi ? "updateMany" : "updateOne"](
+      normalized,
+      update,
+      options
+    );
+  }
+
   // Delete methods :
 
-  deleteMany(...args: Array<any>): any {}
+  async remove(
+    query: FilterQuery<T> = {},
+    options: CommonOptions & { single?: boolean }
+  ) {
+    const scheduler: RemoveScheduler = [];
+    const deletedKeys: DeletedKeys = Object.create(null);
+    const remover = await propagateRemove(
+      this,
+      query,
+      options.single ?? false,
+      scheduler,
+      deletedKeys
+    );
+    for (const task of take(scheduler, scheduler.length - 1)) await task();
+    return remover();
+  }
 }

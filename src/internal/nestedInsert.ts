@@ -1,4 +1,10 @@
-import { OptionalId } from "mongodb";
+import {
+  CollectionInsertManyOptions,
+  InsertOneWriteOpResult,
+  InsertWriteOpResult,
+  OptionalId,
+  WithId
+} from "mongodb";
 import { entries, isArray, isPlainObject, last } from "lodash";
 import {
   Collection,
@@ -9,6 +15,38 @@ import {
   Rongo,
   stackToKey
 } from "../.";
+
+// This function is used to perform nested inserts :
+
+export async function nestedInsert<T extends Document>(
+  collection: Collection<T>,
+  doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
+  options: CollectionInsertManyOptions,
+  dependencies: DependencyCollector
+) {
+  const col = await collection.handle;
+  const normalized = await normalizeInsertionDoc(collection, doc, dependencies);
+  let result:
+    | InsertOneWriteOpResult<WithId<T>>
+    | InsertWriteOpResult<WithId<T>>;
+  let documents: WithId<T> | Array<WithId<T>>;
+  if (!isArray(normalized)) {
+    result = await col.insertOne(normalized, options);
+    documents = result.ops[0];
+  } else {
+    result = await col.insertMany(normalized, options);
+    documents = result.ops;
+  }
+  dependencies.add(
+    collection,
+    await collection.resolve(collection.primaryKey, documents)
+  );
+  if (!result.result.ok)
+    throw new Error(
+      `Something went wrong in the MongoDB driver during insert in collection <${collection.name}>`
+    );
+  return documents;
+}
 
 // This function transforms an augmented insertion document into a simple insertion document
 
@@ -50,10 +88,10 @@ export function normalizeInsertionDoc<T extends Document>(
           `Non-array values can't be assigned to array foreign key <${key}> in collection <${collection.name}>`
         );
       // Keys can't be plain objects, so if that's the case, it's a foreign insertion document :
-      if (isPlainObject(value))
-        value = await foreignCol
-          .insert(value, {}, dependencies)
-          .select(foreignCol.primaryKey);
+      if (isPlainObject(value)) {
+        const doc = await nestedInsert(foreignCol, value, {}, dependencies);
+        value = await foreignCol.resolve(foreignCol.primaryKey, doc);
+      }
       // If verification is on, check if "value" points to a valid foreign document :
       if (foreignKeyConfig.onInsert === InsertPolicy.Verify)
         if (!(await foreignCol.count({ [foreignCol.primaryKey]: value })))
@@ -71,11 +109,10 @@ export function normalizeInsertionDoc<T extends Document>(
         );
       // We map the array and replace foreign insertion documents with their actual primary key after insertion :
       value = await Promise.all(
-        value.map(item => {
+        value.map(async item => {
           if (!isPlainObject(item)) return item;
-          return foreignCol
-            .insert(item, {}, dependencies)
-            .select(foreignCol.primaryKey);
+          const doc = await nestedInsert(foreignCol, item, {}, dependencies);
+          return foreignCol.resolve(foreignCol.primaryKey, doc);
         })
       );
       // If verification is on, check if every foreign key points to an actual foreign document :
@@ -95,7 +132,7 @@ export function normalizeInsertionDoc<T extends Document>(
   });
 }
 
-// This class is used to collect document references across the database (used for nested insert clean-ups)
+// This class is used to collect document references across the database for nested insert clean-ups
 
 export class DependencyCollector {
   private readonly rongo: Rongo;
@@ -117,7 +154,8 @@ export class DependencyCollector {
   async delete() {
     for (const [collectionName, keys] of entries(this.dependencies)) {
       const collection = this.rongo.collection(collectionName);
-      await collection.deleteMany({ [collection.primaryKey]: { $in: keys } });
+      const col = await collection.handle;
+      await col.deleteMany({ [collection.primaryKey]: { $in: keys } });
     }
     this.dependencies = Object.create(null);
   }
