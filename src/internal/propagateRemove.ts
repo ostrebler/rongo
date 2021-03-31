@@ -14,7 +14,7 @@ export async function propagateRemove(
   scheduler: RemoveScheduler,
   deletedKeys: DeletedKeys
 ) {
-  const keys = await filterKeys(collection, query, single, deletedKeys);
+  const keys = await getKeys(collection, query, single, deletedKeys);
 
   if (!isEmpty(keys))
     for (const [colName, foreignKeys] of entries(collection.references))
@@ -24,21 +24,21 @@ export async function propagateRemove(
 
         switch (foreignKeyConfig.onDelete) {
           case DeletePolicy.Reject:
-            const count = await refCol.count(refQuery);
-            if (count)
+            if (await refCol.has(refQuery))
               throw new Error(
                 `Remove operation in collection <${collection.name}> got rejected : Some foreign keys <${foreignKey}> in collection <${colName}> point to targeted documents`
               );
             break;
 
           case DeletePolicy.Remove:
-            await propagateRemove(
+            const remover = await propagateRemove(
               refCol,
               refQuery,
               false,
               scheduler,
               deletedKeys
             );
+            scheduler.push(remover);
             break;
 
           case DeletePolicy.Unset:
@@ -52,15 +52,13 @@ export async function propagateRemove(
         }
       }
 
-  const remover = async () => {
+  return async () => {
     const col = await collection.handle;
     return col.deleteMany({ [collection.primaryKey]: { $in: keys } });
   };
-  scheduler.push(remover);
-  return remover;
 }
 
-async function filterKeys(
+async function getKeys(
   collection: Collection<any>,
   query: FilterQuery<any>,
   single: boolean,
@@ -69,7 +67,10 @@ async function filterKeys(
   if (!(collection.name in deletedKeys)) deletedKeys[collection.name] = [];
   const markedKeys = deletedKeys[collection.name];
   const keys: Array<any> = await collection
-    .find(query, single ? { limit: 1 } : undefined)
+    .find(query, {
+      ...(single && { limit: 1 }),
+      projection: { [collection.primaryKey]: 1 }
+    })
     .select(collection.primaryKey);
   const keysToDelete = differenceWith(
     keys,

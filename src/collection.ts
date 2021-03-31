@@ -10,7 +10,7 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { isString, take } from "lodash";
+import { isString } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
@@ -66,10 +66,16 @@ export class Collection<T extends Document> {
   }
 
   async aggregate<U = T>(
-    pipeline?: object[],
+    pipeline: Array<any> = [],
     options?: CollectionAggregationOptions
   ) {
     const col = await this.handle;
+    const [first, ...stages] = pipeline;
+    if (first?.$match)
+      pipeline = [
+        { $match: await normalizeFilterQuery(this, first.$match) },
+        ...stages
+      ];
     return col.aggregate<U>(pipeline, options).toArray();
   }
 
@@ -98,6 +104,18 @@ export class Collection<T extends Document> {
       return col.findOne(normalized, options);
     };
     return selectablePromise(this, exec());
+  }
+
+  findByKey(key: any, options?: FindOneOptions<T extends T ? T : T>) {
+    return this.findOne({ [this.primaryKey]: key } as FilterQuery<T>, options);
+  }
+
+  async has(query: FilterQuery<T> = {}) {
+    return 0 < (await this.count(query, { limit: 1 }));
+  }
+
+  hasKey(key: any) {
+    return this.has({ [this.primaryKey]: key } as FilterQuery<T>);
   }
 
   // Insert method :
@@ -164,7 +182,7 @@ export class Collection<T extends Document> {
       scheduler,
       deletedKeys
     );
-    for (const task of take(scheduler, scheduler.length - 1)) await task();
+    for (const task of scheduler) await task();
     return remover();
   }
 }
