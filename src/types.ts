@@ -84,6 +84,10 @@ export type Selectable<T extends Document> =
 // Used by collection to add selection to promises
 
 export type SelectablePromise<T> = Promise<T> & {
+  select<K extends T extends Array<infer U> ? keyof U : never>(
+    selector: K
+  ): Promise<T extends Array<infer U> ? Array<U[K]> : never>;
+  select<K extends keyof T>(selector: K): Promise<T[K]>;
   select(selector: string | Selector): Promise<any>;
   select(
     chunks: TemplateStringsArray,
