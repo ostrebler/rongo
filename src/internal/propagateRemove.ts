@@ -40,15 +40,16 @@ export async function propagateRemove<T extends Document>(
 
           case DeletePolicy.Remove:
             // Recursively propagate removal in reference collection :
-            const remover = await propagateRemove(
-              refCol,
-              refQuery,
-              false,
-              options,
-              scheduler,
-              deletedKeys
+            scheduler.push(
+              await propagateRemove(
+                refCol,
+                refQuery,
+                false,
+                options,
+                scheduler,
+                deletedKeys
+              )
             );
-            scheduler.push(remover);
             break;
 
           case DeletePolicy.Unset:
