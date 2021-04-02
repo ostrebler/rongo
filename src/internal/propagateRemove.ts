@@ -166,10 +166,10 @@ function toSetUpdater(path: Path) {
 
 /* This function transforms a key path to a valid [$pull-like update query target, element filter] pair
  *
- * a           => ERROR
+ * a           => NEVER
  * a.$         => a              |
- * a.b         => ERROR
- * a.b.c       => ERROR
+ * a.b         => NEVER
+ * a.b.c       => NEVER
  * a.$.b       => a              | b
  * a.$.b.$     => a.$[].b        |
  * a.$.b.c     => a              | b.c
