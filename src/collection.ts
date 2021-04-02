@@ -189,7 +189,7 @@ export class Collection<T extends Document> {
     return selectablePromise(this, async () => {
       const dependencies = new DependencyCollector(this.rongo);
       try {
-        return nestedInsert(this, doc, options ?? {}, dependencies);
+        return nestedInsert(this, doc, options, dependencies);
       } catch (e) {
         await dependencies.delete();
         throw e;

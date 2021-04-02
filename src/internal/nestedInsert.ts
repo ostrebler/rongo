@@ -21,7 +21,7 @@ import {
 export async function nestedInsert<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-  options: CollectionInsertManyOptions,
+  options: CollectionInsertManyOptions | undefined,
   dependencies: DependencyCollector
 ) {
   const col = await collection.handle;
