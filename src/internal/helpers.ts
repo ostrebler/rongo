@@ -73,8 +73,9 @@ export function asyncFilter<T>(
 
 export function selectablePromise<T extends Document, S extends Selectable<T>>(
   collection: Collection<T>,
-  promise: Promise<S>
+  promiseFactory: () => Promise<S>
 ): SelectablePromise<S> {
+  const promise = promiseFactory();
   return assign(promise, {
     select(
       chunks: TemplateStringsArray | string | Selector,

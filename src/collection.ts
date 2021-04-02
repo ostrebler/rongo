@@ -1,11 +1,22 @@
 import {
+  ChangeStreamOptions,
+  ClientSession,
   Collection as Col,
   CollectionAggregationOptions,
   CollectionInsertManyOptions,
   CommonOptions,
   DbCollectionOptions,
+  FindOneAndDeleteOption,
+  FindOneAndReplaceOption,
+  FindOneAndUpdateOption,
   FindOneOptions,
+  GeoHaystackSearchOptions,
+  IndexOptions,
+  IndexSpecification,
   MongoCountPreferences,
+  MongoDistinctPreferences,
+  ReadPreferenceOrMode,
+  ReplaceOneOptions,
   UpdateManyOptions,
   UpdateQuery,
   WithId
@@ -20,6 +31,7 @@ import {
   InsertionDoc,
   nestedInsert,
   normalizeFilterQuery,
+  normalizeInsertionDoc,
   parseSelector,
   propagateRemove,
   RemoveScheduler,
@@ -85,29 +97,46 @@ export class Collection<T extends Document> {
     return col.countDocuments(normalized, options);
   }
 
+  async distinct(
+    key: string,
+    query: FilterQuery<T> = {},
+    options?: MongoDistinctPreferences
+  ) {
+    const col = await this.handle;
+    const normalized = await normalizeFilterQuery(this, query);
+    return col.distinct(key, normalized, options);
+  }
+
   find(query: FilterQuery<T> = {}, options?: FindOneOptions<T>) {
-    const exec = async () => {
+    return selectablePromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query);
       return col.find(normalized, options as any).toArray();
-    };
-    return selectablePromise(this, exec());
+    });
   }
 
   findOne(
     query: FilterQuery<T> = {},
     options?: FindOneOptions<T extends T ? T : T>
   ) {
-    const exec = async () => {
+    return selectablePromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query);
       return col.findOne(normalized, options);
-    };
-    return selectablePromise(this, exec());
+    });
   }
 
   findByKey(key: any, options?: FindOneOptions<T extends T ? T : T>) {
     return this.findOne({ [this.primaryKey]: key } as FilterQuery<T>, options);
+  }
+
+  async geoHaystackSearch(
+    x: number,
+    y: number,
+    options?: GeoHaystackSearchOptions
+  ) {
+    const col = await this.handle;
+    return col.geoHaystackSearch(x, y, options);
   }
 
   async has(query: FilterQuery<T> = {}) {
@@ -118,7 +147,25 @@ export class Collection<T extends Document> {
     return this.has({ [this.primaryKey]: key } as FilterQuery<T>);
   }
 
-  // Insert method :
+  async isCapped(options?: { session: ClientSession }) {
+    const col = await this.handle;
+    return col.isCapped(options);
+  }
+
+  async stats(options?: { scale: number; session?: ClientSession }) {
+    const col = await this.handle;
+    return col.stats(options);
+  }
+
+  async watch<U = T>(
+    pipeline?: object[],
+    options?: ChangeStreamOptions & { session?: ClientSession }
+  ) {
+    const col = await this.handle;
+    return col.watch<U>(pipeline, options);
+  }
+
+  // Insert/replace methods :
 
   insert(
     doc: InsertionDoc<T>,
@@ -139,7 +186,7 @@ export class Collection<T extends Document> {
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
     options?: CollectionInsertManyOptions
   ) {
-    const exec = async () => {
+    return selectablePromise(this, async () => {
       const dependencies = new DependencyCollector(this.rongo);
       try {
         return nestedInsert(this, doc, options ?? {}, dependencies);
@@ -147,8 +194,56 @@ export class Collection<T extends Document> {
         await dependencies.delete();
         throw e;
       }
-    };
-    return selectablePromise(this, exec());
+    });
+  }
+
+  findOneAndReplace(
+    query: FilterQuery<T>,
+    doc: InsertionDoc<T>,
+    options?: FindOneAndReplaceOption<T>
+  ) {
+    return selectablePromise(this, async () => {
+      const col = await this.handle;
+      const normalizedQuery = await normalizeFilterQuery(this, query);
+      const dependencies = new DependencyCollector(this.rongo);
+      try {
+        const normalizedDoc = await normalizeInsertionDoc(
+          this,
+          doc,
+          dependencies
+        );
+        const result = await col.findOneAndReplace(
+          normalizedQuery,
+          normalizedDoc,
+          options
+        );
+        return result.value ?? null;
+      } catch (e) {
+        await dependencies.delete();
+        throw e;
+      }
+    });
+  }
+
+  async replaceOne(
+    query: FilterQuery<T>,
+    doc: InsertionDoc<T>,
+    options?: ReplaceOneOptions
+  ) {
+    const col = await this.handle;
+    const normalizedQuery = await normalizeFilterQuery(this, query);
+    const dependencies = new DependencyCollector(this.rongo);
+    try {
+      const normalizedDoc = await normalizeInsertionDoc(
+        this,
+        doc,
+        dependencies
+      );
+      return col.replaceOne(normalizedQuery, normalizedDoc as T, options);
+    } catch (e) {
+      await dependencies.delete();
+      throw e;
+    }
   }
 
   // Update methods :
@@ -167,22 +262,112 @@ export class Collection<T extends Document> {
     );
   }
 
+  findOneAndUpdate(
+    query: FilterQuery<T>,
+    update: UpdateQuery<T> | T,
+    options?: FindOneAndUpdateOption<T>
+  ) {
+    return selectablePromise(this, async () => {
+      const col = await this.handle;
+      const normalized = await normalizeFilterQuery(this, query);
+      const result = await col.findOneAndUpdate(normalized, update, options);
+      return result.value ?? null;
+    });
+  }
+
   // Delete methods :
 
   async remove(
     query: FilterQuery<T> = {},
-    options: CommonOptions & { single?: boolean }
+    options?: CommonOptions & { single?: boolean }
   ) {
+    const normalized = await normalizeFilterQuery(this, query);
     const scheduler: RemoveScheduler = [];
     const deletedKeys: DeletedKeys = Object.create(null);
     const remover = await propagateRemove(
       this,
-      query,
-      options.single ?? false,
+      normalized,
+      options?.single ?? false,
+      options,
       scheduler,
       deletedKeys
     );
     for (const task of scheduler) await task();
     return remover();
+  }
+
+  async drop(options?: { session: ClientSession }) {
+    const col = await this.handle;
+    await this.remove({}, options);
+    return col.drop();
+  }
+
+  findOneAndDelete(query: FilterQuery<T>, options?: FindOneAndDeleteOption<T>) {
+    return selectablePromise(this, async () => {
+      const col = await this.handle;
+      const normalized = await normalizeFilterQuery(this, query);
+      const result = await col.findOneAndDelete(normalized, options);
+      return result.value ?? null;
+    });
+  }
+
+  // Index methods :
+
+  async createIndex(fieldOrSpec: string | any, options?: IndexOptions) {
+    const col = await this.handle;
+    return col.createIndex(fieldOrSpec, options);
+  }
+
+  async createIndexes(
+    indexSpecs: IndexSpecification[],
+    options?: { session?: ClientSession }
+  ) {
+    const col = await this.handle;
+    return col.createIndexes(indexSpecs, options);
+  }
+
+  async dropIndex(
+    indexName: string,
+    options?: CommonOptions & { maxTimeMS?: number }
+  ) {
+    const col = await this.handle;
+    return col.dropIndex(indexName, options);
+  }
+
+  async dropIndexes(options?: { session?: ClientSession; maxTimeMS?: number }) {
+    const col = await this.handle;
+    return col.dropIndexes(options);
+  }
+
+  async indexes(options?: { session: ClientSession }) {
+    const col = await this.handle;
+    return col.indexes(options);
+  }
+
+  async indexExists(
+    indexes: string | string[],
+    options?: { session: ClientSession }
+  ) {
+    const col = await this.handle;
+    return col.indexExists(indexes, options);
+  }
+
+  async indexInformation(options?: { full: boolean; session: ClientSession }) {
+    const col = await this.handle;
+    return col.indexInformation(options);
+  }
+
+  async listIndexes(options?: {
+    batchSize?: number;
+    readPreference?: ReadPreferenceOrMode;
+    session?: ClientSession;
+  }) {
+    const col = await this.handle;
+    return col.listIndexes(options).toArray();
+  }
+
+  async reIndex(options?: { session: ClientSession }) {
+    const col = await this.handle;
+    return col.reIndex(options);
   }
 }

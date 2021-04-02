@@ -1,11 +1,25 @@
 import {
+  ChangeStreamOptions,
+  ClientSession,
+  CollectionCreateOptions,
+  CommonOptions,
   Db,
+  DbAddUserOptions,
   DbCollectionOptions,
   MongoClient,
-  MongoClientOptions
+  MongoClientOptions,
+  ReadPreferenceOrMode
 } from "mongodb";
 import { isString } from "lodash";
-import { buildGraph, Collection, Document, Graph, loadSchema, Schema } from ".";
+import {
+  buildGraph,
+  Collection,
+  Document,
+  Graph,
+  loadSchema,
+  ObjectId,
+  Schema
+} from ".";
 
 // The Rongo class
 
@@ -30,15 +44,44 @@ export class Rongo {
     });
   }
 
-  schema(schema: Schema | string) {
-    this.graph = buildGraph(isString(schema) ? loadSchema(schema) : schema);
+  // Client methods :
+
+  async close() {
+    const client = await this.client;
+    await client.close();
+    this.active = client.isConnected();
   }
 
-  collection<T extends Document>(
-    name: string,
-    options: DbCollectionOptions = {}
+  // Database methods :
+
+  async addUser(
+    username: string,
+    password: string,
+    options?: DbAddUserOptions
   ) {
+    const db = await this.handle;
+    return db.addUser(username, password, options);
+  }
+
+  collection<T extends Document>(name: string, options?: DbCollectionOptions) {
     return new Collection<T>(this, name, options);
+  }
+
+  async command(
+    command: object,
+    options?: { readPreference?: ReadPreferenceOrMode; session?: ClientSession }
+  ) {
+    const db = await this.handle;
+    return db.command(command, options);
+  }
+
+  async createCollection<T extends Document>(
+    name: string,
+    options?: CollectionCreateOptions
+  ) {
+    const db = await this.handle;
+    await db.createCollection(name, options);
+    return this.collection<T>(name, options);
   }
 
   async drop() {
@@ -46,9 +89,46 @@ export class Rongo {
     return db.dropDatabase();
   }
 
-  async disconnect() {
-    const client = await this.client;
-    await client.close();
-    this.active = client.isConnected();
+  async executeDbAdminCommand(
+    command: object,
+    options?: { readPreference?: ReadPreferenceOrMode; session?: ClientSession }
+  ) {
+    const db = await this.handle;
+    return db.executeDbAdminCommand(command, options);
+  }
+
+  async listCollections(
+    filter?: object,
+    options?: {
+      nameOnly?: boolean;
+      batchSize?: number;
+      readPreference?: ReadPreferenceOrMode;
+      session?: ClientSession;
+    }
+  ) {
+    const db = await this.handle;
+    return db.listCollections(filter, options).toArray();
+  }
+
+  async removeUser(username: string, options?: CommonOptions) {
+    const db = await this.handle;
+    return db.removeUser(username, options);
+  }
+
+  schema(schema: Schema | string) {
+    this.graph = buildGraph(isString(schema) ? loadSchema(schema) : schema);
+  }
+
+  async stats(options?: { scale?: number }) {
+    const db = await this.handle;
+    return db.stats(options);
+  }
+
+  async watch<T extends object = { _id: ObjectId }>(
+    pipeline?: object[],
+    options?: ChangeStreamOptions & { session?: ClientSession }
+  ) {
+    const db = await this.handle;
+    return db.watch<T>(pipeline, options);
   }
 }
