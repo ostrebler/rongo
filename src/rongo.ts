@@ -28,7 +28,7 @@ export class Rongo {
   graph: Graph;
   readonly client: Promise<MongoClient>;
   readonly handle: Promise<Db>;
-  active: boolean;
+  isConnected: boolean;
 
   constructor(uri: string, name: string, options?: MongoClientOptions) {
     this.name = name;
@@ -38,18 +38,22 @@ export class Rongo {
       ...options
     });
     this.handle = this.client.then(client => client.db(name));
-    this.active = false;
+    this.isConnected = false;
     this.client.then(client => {
-      this.active = client.isConnected();
+      this.isConnected = client.isConnected();
     });
   }
 
   // Client methods :
 
+  active() {
+    return this.client;
+  }
+
   async close() {
     const client = await this.client;
     await client.close();
-    this.active = client.isConnected();
+    this.isConnected = client.isConnected();
   }
 
   // Database methods :
