@@ -39,7 +39,7 @@ export async function nestedInsert<T extends Document>(
   }
   dependencies.add(
     collection,
-    await collection.resolve(collection.primaryKey, documents)
+    await collection.resolve(collection.key, documents)
   );
   if (!result.result.ok)
     throw new Error(
@@ -90,11 +90,11 @@ export function normalizeInsertionDoc<T extends Document>(
       // Keys can't be plain objects, so if that's the case, it's a foreign insertion document :
       if (isPlainObject(value)) {
         const doc = await nestedInsert(foreignCol, value, {}, dependencies);
-        value = await foreignCol.resolve(foreignCol.primaryKey, doc);
+        value = await foreignCol.resolve(foreignCol.key, doc);
       }
       // If verification is on, check if "value" points to a valid foreign document :
       if (foreignKeyConfig.onInsert === InsertPolicy.Verify)
-        if (!(await foreignCol.count({ [foreignCol.primaryKey]: value })))
+        if (!(await foreignCol.count({ [foreignCol.key]: value })))
           throw new Error(
             `Invalid foreign key <${key}> in insertion document for collection <${collection.name}> : no document with primary key <${value}> in collection<${foreignCol.name}>`
           );
@@ -112,13 +112,13 @@ export function normalizeInsertionDoc<T extends Document>(
         value.map(async item => {
           if (!isPlainObject(item)) return item;
           const doc = await nestedInsert(foreignCol, item, {}, dependencies);
-          return foreignCol.resolve(foreignCol.primaryKey, doc);
+          return foreignCol.resolve(foreignCol.key, doc);
         })
       );
       // If verification is on, check if every foreign key points to an actual foreign document :
       if (foreignKeyConfig.onInsert === InsertPolicy.Verify) {
         const count = await foreignCol.count({
-          [foreignCol.primaryKey]: { $in: value }
+          [foreignCol.key]: { $in: value }
         });
         if (value.length !== count)
           throw new Error(
@@ -155,7 +155,7 @@ export class DependencyCollector {
     for (const [collectionName, keys] of entries(this.dependencies)) {
       const collection = this.rongo.collection(collectionName);
       const col = await collection.handle;
-      await col.deleteMany({ [collection.primaryKey]: { $in: keys } });
+      await col.deleteMany({ [collection.key]: { $in: keys } });
     }
     this.dependencies = Object.create(null);
   }

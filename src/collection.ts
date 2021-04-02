@@ -58,8 +58,8 @@ export class Collection<T extends Document> {
 
   // Meta data :
 
-  get primaryKey() {
-    return this.rongo.graph[this.name].primaryKey;
+  get key() {
+    return this.rongo.graph[this.name].key;
   }
 
   get foreignKeys() {
@@ -127,7 +127,7 @@ export class Collection<T extends Document> {
   }
 
   findByKey(key: any, options?: FindOneOptions<T extends T ? T : T>) {
-    return this.findOne({ [this.primaryKey]: key } as FilterQuery<T>, options);
+    return this.findOne({ [this.key]: key } as FilterQuery<T>, options);
   }
 
   async geoHaystackSearch(
@@ -140,11 +140,11 @@ export class Collection<T extends Document> {
   }
 
   async has(query: FilterQuery<T> = {}) {
-    return 0 < (await this.count(query, { limit: 1 }));
+    return Boolean(await this.count(query, { limit: 1 }));
   }
 
   hasKey(key: any) {
-    return this.has({ [this.primaryKey]: key } as FilterQuery<T>);
+    return this.has({ [this.key]: key } as FilterQuery<T>);
   }
 
   async isCapped(options?: { session: ClientSession }) {
@@ -231,7 +231,7 @@ export class Collection<T extends Document> {
     options?: FindOneAndReplaceOption<T>
   ) {
     return this.findOneAndReplace(
-      { [this.primaryKey]: key } as FilterQuery<T>,
+      { [this.key]: key } as FilterQuery<T>,
       doc,
       options
     );
@@ -293,7 +293,7 @@ export class Collection<T extends Document> {
     options?: FindOneAndUpdateOption<T>
   ) {
     return this.findOneAndUpdate(
-      { [this.primaryKey]: key } as FilterQuery<T>,
+      { [this.key]: key } as FilterQuery<T>,
       update,
       options
     );
@@ -337,7 +337,7 @@ export class Collection<T extends Document> {
 
   findByKeyAndDelete(key: any, options?: FindOneAndDeleteOption<T>) {
     return this.findOneAndDelete(
-      { [this.primaryKey]: key } as FilterQuery<T>,
+      { [this.key]: key } as FilterQuery<T>,
       options
     );
   }

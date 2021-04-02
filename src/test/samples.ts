@@ -31,7 +31,7 @@ export const Book = rongo.collection<BookDb>("Book");
 
 export const graph: Graph = {
   Author: {
-    primaryKey: "_id",
+    key: "_id",
     foreignKeys: {
       favoriteBooks: {
         path: ["favoriteBooks", "$"],
@@ -56,7 +56,7 @@ export const graph: Graph = {
     }
   },
   Book: {
-    primaryKey: "_id",
+    key: "_id",
     foreignKeys: {
       previousBook: {
         path: ["previousBook"],

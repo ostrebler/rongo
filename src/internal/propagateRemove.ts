@@ -97,7 +97,7 @@ export async function propagateRemove<T extends Document>(
   return async () => {
     const col = await collection.handle;
     return col.deleteMany(
-      { [collection.primaryKey]: { $in: keys } } as FilterQueryBase<T>,
+      { [collection.key]: { $in: keys } } as FilterQueryBase<T>,
       options
     );
   };
@@ -118,9 +118,9 @@ async function getKeys<T extends Document>(
   const keys: Array<any> = await collection
     .find(query, {
       ...(single && { limit: 1 }),
-      projection: { [collection.primaryKey]: 1 }
+      projection: { [collection.key]: 1 }
     })
-    .select(collection.primaryKey);
+    .select(collection.key);
   // Subtract the keys already marked as deleted :
   const keysToDelete = differenceWith(
     keys,

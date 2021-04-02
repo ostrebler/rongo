@@ -8,7 +8,7 @@ export type Graph = {
 };
 
 export type CollectionConfig = {
-  primaryKey: string;
+  key: string;
   foreignKeys: {
     [foreignKey: string]: ForeignKeyConfig;
   };
@@ -32,8 +32,8 @@ export type ForeignKeyConfig = {
 
 export type Schema = {
   [collection: string]: {
-    primary?: string;
-    foreign?: {
+    key?: string;
+    foreignKeys?: {
       [foreignKeyPath: string]: {
         collection?: string;
         optional?: boolean;

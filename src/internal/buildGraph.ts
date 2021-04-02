@@ -26,10 +26,12 @@ export function buildGraph(schema: unknown) {
     const config = graph[collection];
 
     // Setup what we know regarding this collection at this point :
-    config.primaryKey = partialConfig.primary ?? "_id";
+    config.key = partialConfig.key ?? "_id";
 
     // For each foreign key in the current collection :
-    for (const [pathStr, pathConfig] of entries(partialConfig.foreign ?? {})) {
+    for (const [pathStr, pathConfig] of entries(
+      partialConfig.foreignKeys ?? {}
+    )) {
       const path = pathStr.split(".");
       const foreignKey = path.filter(route => route !== "$").join(".");
 

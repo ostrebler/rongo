@@ -65,5 +65,5 @@ export function normalizeFilterQuery<T extends Document>(
 // This function returns the primary keys of the documents that match a given query
 
 function findPrimaryKeys(collection: Collection<any>, query: FilterQuery<any>) {
-  return collection.find(query).select(collection.primaryKey);
+  return collection.find(query).select(collection.key);
 }
