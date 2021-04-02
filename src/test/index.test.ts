@@ -1,68 +1,27 @@
-import util from "util";
-import {
-  FieldSelector,
-  IdentitySelector,
-  IndexSelector,
-  ObjectSelector,
-  Rongo,
-  select,
-  Selector,
-  ShortcutSelector
-} from "../.";
-import { Author, Book, graph, rongo } from "./samples";
+import { Db, MongoClient } from "mongodb";
+import { Rongo } from "../.";
+import { graph, populateTest, rongo } from "./samples";
 
-it("correctly loads and parses YAML and JSON configuration files", () => {
+it("correctly loads and parses YAML and JSON configuration files", async () => {
   const rongoYml = new Rongo("mongodb://localhost:27017", "rongo_test");
-  rongoYml.schema("./src/test/rongo.test.yaml");
+  rongoYml.schema("./src/test/schema.test.yaml");
   expect(rongo.graph).toEqual(rongoYml.graph);
   expect(rongo.graph).toEqual(graph);
-  rongoYml.disconnect();
+  await rongoYml.close();
 });
 
 it("correctly connects to the database", async () => {
-  expect(await rongo.active()).toBe(true);
+  expect(await rongo.active()).toBeTruthy();
+  expect(await rongo.active()).toBeInstanceOf(MongoClient);
+  expect(await rongo.handle).toBeInstanceOf(Db);
 });
 
 it("correctly inserts documents", async () => {
-  await rongo.drop();
-
-  const book = await Book.insert({
-    title: "Harry Potter",
-    previousBook: null,
-    nextBook: undefined,
-    author: {
-      age: 45,
-      name: "J.K. Rowling",
-      favoriteBooks: [
-        {
-          title: "Da Vinci Code",
-          previousBook: null,
-          nextBook: undefined,
-          author: {
-            age: 60,
-            name: "Dan Brown",
-            favoriteBooks: []
-          }
-        },
-        {
-          title: "Lord of the Ring",
-          previousBook: null,
-          nextBook: undefined,
-          author: {
-            age: 90,
-            name: "J.R.R Tolkien",
-            favoriteBooks: []
-          }
-        }
-      ]
-    }
-  });
-
-  expect(await Author.count()).toBe(3);
-  expect(await Book.count()).toBe(3);
+  await populateTest();
+  // expect(await User.count()).toBe(3);
 });
 
-it("correctly parses resolves", async () => {
+/*it("correctly parses resolves", async () => {
   const s1 = select``;
   const s2 = select`label`;
   const s3 = select` nested  ${"label"}  `;
@@ -147,8 +106,8 @@ it("correctly parses resolves", async () => {
   expect(s9).toEqual(
     new ShortcutSelector(new FieldSelector("label", new IdentitySelector()))
   );
-});
+});*/
 
 it("correctly disconnects", async () => {
-  await rongo.disconnect();
+  await rongo.close();
 });

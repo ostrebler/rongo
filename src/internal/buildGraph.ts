@@ -85,11 +85,11 @@ const isSchema = new Ajv().compile<Schema>({
       type: "object",
       additionalProperties: false,
       properties: {
-        primary: {
+        key: {
           type: "string",
           pattern: `^${id}(\\.${id})*$`
         },
-        foreign: {
+        foreignKeys: {
           type: "object",
           additionalProperties: false,
           patternProperties: {

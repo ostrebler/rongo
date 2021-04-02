@@ -38,7 +38,7 @@ export async function propagateRemove<T extends Document>(
               `Remove operation in collection <${collection.name}> got rejected : Some foreign keys <${foreignKey}> in collection <${colName}> point to targeted documents`
             );
 
-          case DeletePolicy.Remove:
+          case DeletePolicy.Delete:
             // Recursively propagate removal in reference collection :
             scheduler.push(
               await propagateRemove(

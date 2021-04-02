@@ -57,7 +57,7 @@ export enum InsertPolicy {
 export enum DeletePolicy {
   Bypass = "BYPASS",
   Reject = "REJECT", // *
-  Remove = "REMOVE", // *
+  Delete = "DELETE", // *
   Unset = "UNSET", // * (and "optional" must be true)
   Nullify = "NULLIFY", // * (and "nullable" must be true)
   Pull = "PULL" // x.**.$.**
