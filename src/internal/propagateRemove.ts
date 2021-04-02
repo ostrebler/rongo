@@ -21,11 +21,13 @@ export async function propagateRemove<T extends Document>(
   const keys = await getKeys(collection, query, single, deletedKeys);
   // If there are keys to delete, apply the appropriate delete policies to cross-collection references :
   if (!isEmpty(keys))
-    for (const [colName, foreignKeys] of entries(collection.references))
+    for (const [colName, foreignKeys] of entries(collection.references)) {
+      // Get the foreign collection :
+      const refCol = collection.rongo.collection(colName);
+      const refHandler = await refCol.handle;
+      // For each foreign key which might reference the current keys :
       for (const [foreignKey, foreignKeyConfig] of entries(foreignKeys)) {
-        // Get the foreign collection :
-        const refCol = collection.rongo.collection(colName);
-        const refHandler = await refCol.handle;
+        // Define a filter query to the concerned foreign documents :
         const refQuery: FilterQueryBase<any> = { [foreignKey]: { $in: keys } };
 
         // If there's no reference to the current keys in the foreign collection, ignore that step :
@@ -51,7 +53,6 @@ export async function propagateRemove<T extends Document>(
               )
             );
             break;
-
           case DeletePolicy.Unset:
             // Target relevant documents and unset where necessary :
             scheduler.push(() => {
@@ -93,6 +94,7 @@ export async function propagateRemove<T extends Document>(
             break;
         }
       }
+    }
   // Finally, after clean-up, remove the documents that were still unmarked :
   return async () => {
     const col = await collection.handle;

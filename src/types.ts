@@ -1,7 +1,7 @@
 import { WithId } from "mongodb";
 import { SelectArgument, Selector } from ".";
 
-// Used to store the collection dependencies in an optimally exploitable manner :
+// Used to store the collection dependencies in an optimally exploitable manner
 
 export type Graph = {
   [collection: string]: CollectionConfig;
@@ -28,7 +28,7 @@ export type ForeignKeyConfig = {
   onDelete: DeletePolicy;
 };
 
-// Used to express the collection dependencies in a user-friendly way :
+// Used to express the collection dependencies in a user-friendly way
 
 export type Schema = {
   [collection: string]: {
@@ -45,14 +45,14 @@ export type Schema = {
   };
 };
 
-// The actions one can apply when documents are inserted :
+// The actions one can apply when documents are inserted
 
 export enum InsertPolicy {
   Bypass = "BYPASS",
   Verify = "VERIFY"
 }
 
-// The actions one can apply when documents are deleted :
+// The actions one can apply when documents are deleted
 
 export enum DeletePolicy {
   Bypass = "BYPASS",
@@ -63,7 +63,7 @@ export enum DeletePolicy {
   Pull = "PULL" // x.**.$.**
 }
 
-// The general type constraint for documents :
+// The general type constraint for documents
 
 export type Document = object;
 
@@ -71,7 +71,7 @@ export type Document = object;
 
 export type Path = Array<string>;
 
-// Used by collection select ops to type-check selectable resource :
+// Used by collection select ops to type-check selectable resource
 
 export type Selectable<T extends Document> =
   | null
@@ -93,4 +93,10 @@ export type SelectablePromise<T> = Promise<T> & {
     chunks: TemplateStringsArray,
     ...args: Array<SelectArgument>
   ): Promise<any>;
+};
+
+// Used when collecting foreign references to keys
+
+export type References = {
+  [collection: string]: Array<any>;
 };

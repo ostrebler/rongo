@@ -21,7 +21,7 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { isString } from "lodash";
+import { entries, isArray, isString, keys } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
@@ -34,6 +34,7 @@ import {
   normalizeInsertionDoc,
   parseSelector,
   propagateRemove,
+  References,
   RemoveScheduler,
   Rongo,
   Selectable,
@@ -128,6 +129,24 @@ export class Collection<T extends Document> {
 
   findByKey(key: any, options?: FindOneOptions<T extends T ? T : T>) {
     return this.findOne({ [this.key]: key } as FilterQuery<T>, options);
+  }
+
+  async findReferences(
+    key: any | Array<any>,
+    options?: { keysOnly?: boolean }
+  ) {
+    key = isArray(key) ? key : [key];
+    const references: References = Object.create(null);
+    for (const [colName, foreignKeys] of entries(this.references)) {
+      const refCol = this.rongo.collection(colName);
+      for (const foreignKey of keys(foreignKeys)) {
+        const promise = refCol.find({ [foreignKey]: { $in: key } });
+        references[colName] = await (options?.keysOnly
+          ? promise
+          : promise.select(refCol.key));
+      }
+    }
+    return references;
   }
 
   async geoHaystackSearch(
