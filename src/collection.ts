@@ -225,6 +225,18 @@ export class Collection<T extends Document> {
     });
   }
 
+  findByKeyAndReplace(
+    key: any,
+    doc: InsertionDoc<T>,
+    options?: FindOneAndReplaceOption<T>
+  ) {
+    return this.findOneAndReplace(
+      { [this.primaryKey]: key } as FilterQuery<T>,
+      doc,
+      options
+    );
+  }
+
   async replaceOne(
     query: FilterQuery<T>,
     doc: InsertionDoc<T>,
@@ -275,6 +287,18 @@ export class Collection<T extends Document> {
     });
   }
 
+  findByKeyAndUpdate(
+    key: any,
+    update: UpdateQuery<T> | T,
+    options?: FindOneAndUpdateOption<T>
+  ) {
+    return this.findOneAndUpdate(
+      { [this.primaryKey]: key } as FilterQuery<T>,
+      update,
+      options
+    );
+  }
+
   // Delete methods :
 
   async remove(
@@ -309,6 +333,13 @@ export class Collection<T extends Document> {
       const result = await col.findOneAndDelete(normalized, options);
       return result.value ?? null;
     });
+  }
+
+  findByKeyAndDelete(key: any, options?: FindOneAndDeleteOption<T>) {
+    return this.findOneAndDelete(
+      { [this.primaryKey]: key } as FilterQuery<T>,
+      options
+    );
   }
 
   // Index methods :
