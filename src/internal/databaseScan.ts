@@ -1,7 +1,7 @@
 import { assignWith, differenceWith, entries, isEmpty, uniqBy } from "lodash";
 import { FlatMapSelector, InvalidKeys, Rongo, ScanReport } from "../.";
 
-// This function is used to find and collect all dangling keys in the database, revealing integrity problems
+// This function is used to find and collect all invalid keys in the database, revealing integrity problems
 
 export async function databaseScan(
   rongo: Rongo,
