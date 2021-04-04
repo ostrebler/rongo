@@ -1,4 +1,11 @@
-import { assignWith, differenceWith, entries, isEmpty, uniqBy } from "lodash";
+import {
+  assignWith,
+  differenceWith,
+  entries,
+  isEmpty,
+  min,
+  uniqBy
+} from "lodash";
 import { FlatMapSelector, InvalidKeys, Rongo, ScanReport } from "../.";
 
 // This function is used to find and collect all invalid keys in the database, revealing integrity problems
@@ -32,11 +39,11 @@ export async function databaseScan(
   // For each collection in the database :
   for (const [colName, config] of entries(rongo.graph)) {
     const collection = rongo.collection(colName);
-    const size =
-      options?.limit ?? (await collection.count({}, { baseQuery: true }));
+    const size = await collection.count({}, { baseQuery: true });
+    const maxSkip = min([size, options?.limit ?? Infinity])!;
 
     // For each batch of documents in that collection :
-    for (let skip = 0; skip < size; skip += batchSize) {
+    for (let skip = 0; skip < maxSkip; skip += batchSize) {
       const documents = await collection.find(
         {},
         { baseQuery: true, skip, limit: batchSize }
