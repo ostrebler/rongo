@@ -32,11 +32,15 @@ export async function databaseScan(
   // For each collection in the database :
   for (const [colName, config] of entries(rongo.graph)) {
     const collection = rongo.collection(colName);
-    const size = options?.limit ?? (await collection.count());
+    const size =
+      options?.limit ?? (await collection.count({}, { baseQuery: true }));
 
     // For each batch of documents in that collection :
     for (let skip = 0; skip < size; skip += batchSize) {
-      const documents = await collection.find({}, { skip, limit: batchSize });
+      const documents = await collection.find(
+        {},
+        { baseQuery: true, skip, limit: batchSize }
+      );
       // For each foreign key config in the collection :
       for (const [foreignKey, foreignKeyConfig] of entries(
         config.foreignKeys
