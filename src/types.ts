@@ -21,6 +21,7 @@ export type CollectionConfig = {
 
 export type ForeignKeyConfig = {
   path: Path;
+  selector: Selector;
   collection: string;
   optional: boolean;
   nullable: boolean;
@@ -62,6 +63,22 @@ export enum DeletePolicy {
   Nullify = "NULLIFY", // * (and "nullable" must be true)
   Pull = "PULL" // x.**.$.**
 }
+
+// Use as database scan result object :
+
+export type ScanReport = {
+  [collection: string]: {
+    [foreignKey: string]: InvalidKeys;
+  };
+};
+
+// Used by scan reports :
+
+export type InvalidKeys = {
+  invalidNull: boolean;
+  invalidUnset: boolean;
+  danglingKeys: Array<any>;
+};
 
 // The general type constraint for documents
 

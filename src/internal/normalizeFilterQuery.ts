@@ -4,10 +4,12 @@ import { Collection, Document, FilterQuery, mapDeep, stackToKey } from "../.";
 
 // This function transforms an augmented FilterQuery into a traditional FilterQuery
 
-export function normalizeFilterQuery<T extends Document>(
+export async function normalizeFilterQuery<T extends Document>(
   collection: Collection<T>,
-  query: FilterQuery<T>
+  query: FilterQuery<T>,
+  options?: { baseQuery?: boolean }
 ): Promise<FilterQueryBase<T>> {
+  if (options?.baseQuery) return query as FilterQueryBase<T>;
   return mapDeep(query, async function customizer(value, stack, parent) {
     // We're only looking for plain objects with certain operators :
     if (isPlainObject(value) && (value.$expr || value.$in || value.$nin)) {

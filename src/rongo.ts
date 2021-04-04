@@ -14,6 +14,7 @@ import { isString } from "lodash";
 import {
   buildGraph,
   Collection,
+  databaseScan,
   Document,
   Graph,
   loadSchema,
@@ -65,6 +66,10 @@ export class Rongo {
   ) {
     const db = await this.handle;
     return db.addUser(username, password, options);
+  }
+
+  scan(options?: { batchSize?: number; limit?: number }) {
+    return databaseScan(this, options);
   }
 
   collection<T extends Document>(name: string, options?: DbCollectionOptions) {

@@ -73,18 +73,18 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
-  resolve(selector: string | Selector, document: Selectable<T>) {
+  resolve(selector: string | Selector, selectable: Selectable<T>) {
     if (isString(selector)) selector = parseSelector(selector);
-    return selector.resolve(document, this, []);
+    return selector.resolve(selectable, this, []);
   }
 
   async aggregate<U = T>(
     pipeline: Array<any> = [],
-    options?: CollectionAggregationOptions
+    options?: CollectionAggregationOptions & { baseQuery?: boolean }
   ) {
     const col = await this.handle;
     const [first, ...stages] = pipeline;
-    if (first?.$match)
+    if (first?.$match && !options?.baseQuery)
       pipeline = [
         { $match: await normalizeFilterQuery(this, first.$match) },
         ...stages
@@ -92,43 +92,52 @@ export class Collection<T extends Document> {
     return col.aggregate<U>(pipeline, options).toArray();
   }
 
-  async count(query: FilterQuery<T> = {}, options?: MongoCountPreferences) {
+  async count(
+    query: FilterQuery<T> = {},
+    options?: MongoCountPreferences & { baseQuery?: boolean }
+  ) {
     const col = await this.handle;
-    const normalized = await normalizeFilterQuery(this, query);
+    const normalized = await normalizeFilterQuery(this, query, options);
     return col.countDocuments(normalized, options);
   }
 
   async distinct(
     key: string,
     query: FilterQuery<T> = {},
-    options?: MongoDistinctPreferences
+    options?: MongoDistinctPreferences & { baseQuery?: boolean }
   ) {
     const col = await this.handle;
-    const normalized = await normalizeFilterQuery(this, query);
+    const normalized = await normalizeFilterQuery(this, query, options);
     return col.distinct(key, normalized, options);
   }
 
-  find(query: FilterQuery<T> = {}, options?: FindOneOptions<T>) {
+  find(
+    query: FilterQuery<T> = {},
+    options?: FindOneOptions<T> & { baseQuery?: boolean }
+  ) {
     return selectablePromise(this, async () => {
       const col = await this.handle;
-      const normalized = await normalizeFilterQuery(this, query);
+      const normalized = await normalizeFilterQuery(this, query, options);
       return col.find(normalized, options as any).toArray();
     });
   }
 
   findOne(
     query: FilterQuery<T> = {},
-    options?: FindOneOptions<T extends T ? T : T>
+    options?: FindOneOptions<T extends T ? T : T> & { baseQuery?: boolean }
   ) {
     return selectablePromise(this, async () => {
       const col = await this.handle;
-      const normalized = await normalizeFilterQuery(this, query);
+      const normalized = await normalizeFilterQuery(this, query, options);
       return col.findOne(normalized, options);
     });
   }
 
   findByKey(key: any, options?: FindOneOptions<T extends T ? T : T>) {
-    return this.findOne({ [this.key]: key } as FilterQuery<T>, options);
+    return this.findOne({ [this.key]: key } as FilterQuery<T>, {
+      ...options,
+      baseQuery: true
+    });
   }
 
   async findReferences(
@@ -140,7 +149,10 @@ export class Collection<T extends Document> {
     for (const [colName, foreignKeys] of entries(this.references)) {
       const refCol = this.rongo.collection(colName);
       for (const foreignKey of keys(foreignKeys)) {
-        const promise = refCol.find({ [foreignKey]: { $in: key } });
+        const promise = refCol.find(
+          { [foreignKey]: { $in: key } },
+          { baseQuery: true }
+        );
         references[colName] = await (options?.keysOnly
           ? promise
           : promise.select(refCol.key));
@@ -158,12 +170,12 @@ export class Collection<T extends Document> {
     return col.geoHaystackSearch(x, y, options);
   }
 
-  async has(query: FilterQuery<T> = {}) {
-    return Boolean(await this.count(query, { limit: 1 }));
+  async has(query: FilterQuery<T> = {}, options?: { baseQuery?: boolean }) {
+    return Boolean(await this.count(query, { ...options, limit: 1 }));
   }
 
   hasKey(key: any) {
-    return this.has({ [this.key]: key } as FilterQuery<T>);
+    return this.has({ [this.key]: key } as FilterQuery<T>, { baseQuery: true });
   }
 
   async isCapped(options?: { session: ClientSession }) {
@@ -219,11 +231,11 @@ export class Collection<T extends Document> {
   findOneAndReplace(
     query: FilterQuery<T>,
     doc: InsertionDoc<T>,
-    options?: FindOneAndReplaceOption<T>
+    options?: FindOneAndReplaceOption<T> & { baseQuery?: boolean }
   ) {
     return selectablePromise(this, async () => {
       const col = await this.handle;
-      const normalizedQuery = await normalizeFilterQuery(this, query);
+      const normalizedQuery = await normalizeFilterQuery(this, query, options);
       const dependencies = new DependencyCollector(this.rongo);
       try {
         const normalizedDoc = await normalizeInsertionDoc(
@@ -249,20 +261,19 @@ export class Collection<T extends Document> {
     doc: InsertionDoc<T>,
     options?: FindOneAndReplaceOption<T>
   ) {
-    return this.findOneAndReplace(
-      { [this.key]: key } as FilterQuery<T>,
-      doc,
-      options
-    );
+    return this.findOneAndReplace({ [this.key]: key } as FilterQuery<T>, doc, {
+      ...options,
+      baseQuery: true
+    });
   }
 
   async replaceOne(
     query: FilterQuery<T>,
     doc: InsertionDoc<T>,
-    options?: ReplaceOneOptions
+    options?: ReplaceOneOptions & { baseQuery?: boolean }
   ) {
     const col = await this.handle;
-    const normalizedQuery = await normalizeFilterQuery(this, query);
+    const normalizedQuery = await normalizeFilterQuery(this, query, options);
     const dependencies = new DependencyCollector(this.rongo);
     try {
       const normalizedDoc = await normalizeInsertionDoc(
@@ -282,10 +293,10 @@ export class Collection<T extends Document> {
   async update(
     query: FilterQuery<T>,
     update: UpdateQuery<T> | Partial<T>,
-    options?: UpdateManyOptions & { multi?: boolean }
+    options?: UpdateManyOptions & { multi?: boolean; baseQuery?: boolean }
   ) {
     const col = await this.handle;
-    const normalized = await normalizeFilterQuery(this, query);
+    const normalized = await normalizeFilterQuery(this, query, options);
     return col[options?.multi ? "updateMany" : "updateOne"](
       normalized,
       update,
@@ -296,11 +307,11 @@ export class Collection<T extends Document> {
   findOneAndUpdate(
     query: FilterQuery<T>,
     update: UpdateQuery<T> | T,
-    options?: FindOneAndUpdateOption<T>
+    options?: FindOneAndUpdateOption<T> & { baseQuery?: boolean }
   ) {
     return selectablePromise(this, async () => {
       const col = await this.handle;
-      const normalized = await normalizeFilterQuery(this, query);
+      const normalized = await normalizeFilterQuery(this, query, options);
       const result = await col.findOneAndUpdate(normalized, update, options);
       return result.value ?? null;
     });
@@ -314,7 +325,7 @@ export class Collection<T extends Document> {
     return this.findOneAndUpdate(
       { [this.key]: key } as FilterQuery<T>,
       update,
-      options
+      { ...options, baseQuery: true }
     );
   }
 
@@ -322,9 +333,9 @@ export class Collection<T extends Document> {
 
   async remove(
     query: FilterQuery<T> = {},
-    options?: CommonOptions & { single?: boolean }
+    options?: CommonOptions & { single?: boolean; baseQuery?: boolean }
   ) {
-    const normalized = await normalizeFilterQuery(this, query);
+    const normalized = await normalizeFilterQuery(this, query, options);
     const scheduler: RemoveScheduler = [];
     const deletedKeys: DeletedKeys = Object.create(null);
     const remover = await propagateRemove(
@@ -341,24 +352,27 @@ export class Collection<T extends Document> {
 
   async drop(options?: { session: ClientSession }) {
     const col = await this.handle;
-    await this.remove({}, options);
+    await this.remove({}, { ...options, baseQuery: true });
     return col.drop();
   }
 
-  findOneAndDelete(query: FilterQuery<T>, options?: FindOneAndDeleteOption<T>) {
+  findOneAndDelete(
+    query: FilterQuery<T>,
+    options?: FindOneAndDeleteOption<T> & { baseQuery?: boolean }
+  ) {
     return selectablePromise(this, async () => {
       const col = await this.handle;
-      const normalized = await normalizeFilterQuery(this, query);
+      const normalized = await normalizeFilterQuery(this, query, options);
       const result = await col.findOneAndDelete(normalized, options);
       return result.value ?? null;
     });
   }
 
   findByKeyAndDelete(key: any, options?: FindOneAndDeleteOption<T>) {
-    return this.findOneAndDelete(
-      { [this.key]: key } as FilterQuery<T>,
-      options
-    );
+    return this.findOneAndDelete({ [this.key]: key } as FilterQuery<T>, {
+      ...options,
+      baseQuery: true
+    });
   }
 
   // Index methods :

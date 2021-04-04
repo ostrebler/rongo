@@ -85,7 +85,9 @@ export function selectablePromise<T extends Document, S extends Selectable<T>>(
       if (isString(chunks)) selector = parseSelector(chunks);
       else if (chunks instanceof Selector) selector = chunks;
       else selector = select(chunks, ...args);
-      return promise.then(result => collection.resolve(selector, result));
+      return promise.then(selectable =>
+        collection.resolve(selector, selectable)
+      );
     }
   });
 }

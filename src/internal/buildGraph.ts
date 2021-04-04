@@ -6,6 +6,7 @@ import {
   ForeignKeyConfig,
   Graph,
   InsertPolicy,
+  parseSelector,
   Schema
 } from "../.";
 
@@ -38,6 +39,7 @@ export function buildGraph(schema: unknown) {
       // Create the config for the current foreign key :
       const foreignKeyConfig: ForeignKeyConfig = {
         path,
+        selector: parseSelector(pathStr.replace(/\$/g, "$$$$")),
         collection: pathConfig.collection ?? collection,
         optional: pathConfig.optional ?? false,
         nullable: pathConfig.nullable ?? false,
