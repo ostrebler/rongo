@@ -92,7 +92,10 @@ export class FieldSelector extends Selector {
       collection = collection.rongo.collection(foreignKeyConfig.collection);
       // ...select foreign document(s) as current value :
       if (!isArray(value))
-        value = await collection.findOne({ [collection.key]: value });
+        value = await collection.findOne(
+          { [collection.key]: value },
+          { baseQuery: true }
+        );
       else
         value = new LazyDocuments(collection, [
           { [collection.key]: { $in: value } }
