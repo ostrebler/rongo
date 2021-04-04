@@ -13,6 +13,7 @@ export async function propagateRemove<T extends Document>(
   collection: Collection<T>,
   query: FilterQueryBase<T>,
   single: boolean,
+  propagate: boolean,
   options: CommonOptions | undefined,
   scheduler: RemoveScheduler,
   deletedKeys: DeletedKeys
@@ -20,18 +21,17 @@ export async function propagateRemove<T extends Document>(
   // Get the primary keys that still need to be deleted :
   const keys = await getKeys(collection, query, single, deletedKeys);
   // If there are keys to delete, apply the appropriate delete policies to cross-collection references :
-  if (!isEmpty(keys))
+  if (propagate && !isEmpty(keys))
     for (const [colName, foreignKeys] of entries(collection.references)) {
       // Get the foreign collection :
       const refCol = collection.rongo.collection(colName);
-      const refHandler = await refCol.handle;
       // For each foreign key which might reference the current keys :
       for (const [foreignKey, foreignKeyConfig] of entries(foreignKeys)) {
         // Define a filter query to the concerned foreign documents :
         const refQuery: FilterQueryBase<any> = { [foreignKey]: { $in: keys } };
 
         // If there's no reference to the current keys in the foreign collection, ignore that step :
-        if (!(await refCol.has(refQuery))) continue;
+        if (!(await refCol.has(refQuery, { baseQuery: true }))) continue;
         // Otherwise implement the appropriate delete policy :
         switch (foreignKeyConfig.onDelete) {
           case DeletePolicy.Reject:
@@ -47,22 +47,26 @@ export async function propagateRemove<T extends Document>(
                 refCol,
                 refQuery,
                 false,
+                propagate,
                 options,
                 scheduler,
                 deletedKeys
               )
             );
             break;
+
           case DeletePolicy.Unset:
             // Target relevant documents and unset where necessary :
             scheduler.push(() => {
               const [target, filter] = toSetUpdater(foreignKeyConfig.path);
-              return refHandler.updateMany(
+              return refCol.update(
                 refQuery,
                 { $unset: { [target]: 1 } },
-                filter
-                  ? { arrayFilters: [{ [filter]: { $in: keys } }] }
-                  : undefined
+                {
+                  multi: true,
+                  baseQuery: true,
+                  ...(filter && { arrayFilters: [{ [filter]: { $in: keys } }] })
+                }
               );
             });
             break;
@@ -71,12 +75,14 @@ export async function propagateRemove<T extends Document>(
             // Target relevant documents and nullify where necessary :
             scheduler.push(() => {
               const [target, filter] = toSetUpdater(foreignKeyConfig.path);
-              return refHandler.updateMany(
+              return refCol.update(
                 refQuery,
                 { $set: { [target]: null } },
-                filter
-                  ? { arrayFilters: [{ [filter]: { $in: keys } }] }
-                  : undefined
+                {
+                  multi: true,
+                  baseQuery: true,
+                  ...(filter && { arrayFilters: [{ [filter]: { $in: keys } }] })
+                }
               );
             });
             break;
@@ -85,11 +91,17 @@ export async function propagateRemove<T extends Document>(
             // Target relevant documents and pull where necessary :
             scheduler.push(() => {
               const [target, filter] = toPullUpdater(foreignKeyConfig.path);
-              return refHandler.updateMany(refQuery, {
-                $pull: {
-                  [target]: filter ? { [filter]: { $in: keys } } : { $in: keys }
-                }
-              });
+              return refCol.update(
+                refQuery,
+                {
+                  $pull: {
+                    [target]: filter
+                      ? { [filter]: { $in: keys } }
+                      : { $in: keys }
+                  }
+                },
+                { multi: true, baseQuery: true }
+              );
             });
             break;
         }
@@ -120,7 +132,8 @@ async function getKeys<T extends Document>(
   const keys: Array<any> = await collection
     .find(query, {
       ...(single && { limit: 1 }),
-      projection: { [collection.key]: 1 }
+      projection: { [collection.key]: 1 },
+      baseQuery: true
     })
     .select(collection.key);
   // Subtract the keys already marked as deleted :

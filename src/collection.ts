@@ -6,7 +6,6 @@ import {
   CollectionInsertManyOptions,
   CommonOptions,
   DbCollectionOptions,
-  FindOneAndDeleteOption,
   FindOneAndReplaceOption,
   FindOneAndUpdateOption,
   FindOneOptions,
@@ -333,7 +332,11 @@ export class Collection<T extends Document> {
 
   async remove(
     query: FilterQuery<T> = {},
-    options?: CommonOptions & { single?: boolean; baseQuery?: boolean }
+    options?: CommonOptions & {
+      single?: boolean;
+      propagate?: boolean;
+      baseQuery?: boolean;
+    }
   ) {
     const normalized = await normalizeFilterQuery(this, query, options);
     const scheduler: RemoveScheduler = [];
@@ -342,6 +345,7 @@ export class Collection<T extends Document> {
       this,
       normalized,
       options?.single ?? false,
+      options?.propagate ?? true,
       options,
       scheduler,
       deletedKeys
@@ -350,25 +354,33 @@ export class Collection<T extends Document> {
     return remover();
   }
 
-  async drop(options?: { session: ClientSession }) {
+  async drop(options?: { session: ClientSession; propagate?: boolean }) {
     const col = await this.handle;
     await this.remove({}, { ...options, baseQuery: true });
     return col.drop();
   }
 
-  findOneAndDelete(
+  async findOneAndDelete(
     query: FilterQuery<T>,
-    options?: FindOneAndDeleteOption<T> & { baseQuery?: boolean }
+    options?: FindOneOptions<T extends T ? T : T> & {
+      propagate?: boolean;
+      baseQuery?: boolean;
+    }
   ) {
-    return selectablePromise(this, async () => {
-      const col = await this.handle;
-      const normalized = await normalizeFilterQuery(this, query, options);
-      const result = await col.findOneAndDelete(normalized, options);
-      return result.value ?? null;
+    const normalized = await normalizeFilterQuery(this, query, options);
+    const promise = this.findOne(normalized, { ...options, baseQuery: true });
+    await this.remove(normalized, {
+      ...options,
+      single: true,
+      baseQuery: true
     });
+    return promise;
   }
 
-  findByKeyAndDelete(key: any, options?: FindOneAndDeleteOption<T>) {
+  findByKeyAndDelete(
+    key: any,
+    options?: FindOneOptions<T extends T ? T : T> & { propagate?: boolean }
+  ) {
     return this.findOneAndDelete({ [this.key]: key } as FilterQuery<T>, {
       ...options,
       baseQuery: true
