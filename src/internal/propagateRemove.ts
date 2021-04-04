@@ -13,15 +13,14 @@ export async function propagateRemove<T extends Document>(
   collection: Collection<T>,
   query: FilterQueryBase<T>,
   single: boolean,
-  propagate: boolean,
-  options: CommonOptions | undefined,
+  options: (CommonOptions & { propagate?: boolean }) | undefined,
   scheduler: RemoveScheduler,
   deletedKeys: DeletedKeys
 ) {
   // Get the primary keys that still need to be deleted :
   const keys = await getKeys(collection, query, single, deletedKeys);
   // If there are keys to delete, apply the appropriate delete policies to cross-collection references :
-  if (propagate && !isEmpty(keys))
+  if ((options?.propagate ?? true) && !isEmpty(keys))
     for (const [colName, foreignKeys] of entries(collection.references)) {
       // Get the foreign collection :
       const refCol = collection.rongo.collection(colName);
@@ -47,7 +46,6 @@ export async function propagateRemove<T extends Document>(
                 refCol,
                 refQuery,
                 false,
-                propagate,
                 options,
                 scheduler,
                 deletedKeys

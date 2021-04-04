@@ -345,7 +345,6 @@ export class Collection<T extends Document> {
       this,
       normalized,
       options?.single ?? false,
-      options?.propagate ?? true,
       options,
       scheduler,
       deletedKeys
