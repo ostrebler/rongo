@@ -29,7 +29,7 @@ import {
   Document,
   FilterQuery,
   InsertionDoc,
-  nestedInsert,
+  insertNested,
   normalizeFilterQuery,
   normalizeInsertionDoc,
   parseSelector,
@@ -220,7 +220,7 @@ export class Collection<T extends Document> {
     return selectablePromise(this, async () => {
       const dependencies = new DependencyCollector(this.rongo);
       try {
-        return nestedInsert(this, doc, options, dependencies);
+        return insertNested(this, doc, options, dependencies);
       } catch (e) {
         await dependencies.delete();
         throw e;

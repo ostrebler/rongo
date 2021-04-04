@@ -18,7 +18,7 @@ import {
 
 // This function is used to perform nested inserts :
 
-export async function nestedInsert<T extends Document>(
+export async function insertNested<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
   options: CollectionInsertManyOptions | undefined,
@@ -89,7 +89,7 @@ export function normalizeInsertionDoc<T extends Document>(
         );
       // Keys can't be plain objects, so if that's the case, it's a foreign insertion document :
       if (isPlainObject(value)) {
-        const doc = await nestedInsert(foreignCol, value, {}, dependencies);
+        const doc = await insertNested(foreignCol, value, {}, dependencies);
         value = await foreignCol.resolve(foreignCol.key, doc);
       }
       // If verification is on, check if "value" points to a valid foreign document :
@@ -111,7 +111,7 @@ export function normalizeInsertionDoc<T extends Document>(
       value = await Promise.all(
         value.map(async item => {
           if (!isPlainObject(item)) return item;
-          const doc = await nestedInsert(foreignCol, item, {}, dependencies);
+          const doc = await insertNested(foreignCol, item, {}, dependencies);
           return foreignCol.resolve(foreignCol.key, doc);
         })
       );

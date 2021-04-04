@@ -14,11 +14,11 @@ import { isString } from "lodash";
 import {
   buildGraph,
   Collection,
-  databaseScan,
   Document,
   Graph,
   loadSchema,
   ObjectId,
+  scanDatabase,
   Schema
 } from ".";
 
@@ -69,7 +69,7 @@ export class Rongo {
   }
 
   scan(options?: { batchSize?: number; limit?: number }) {
-    return databaseScan(this, options);
+    return scanDatabase(this, options);
   }
 
   collection<T extends Document>(name: string, options?: DbCollectionOptions) {

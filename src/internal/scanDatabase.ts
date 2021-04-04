@@ -10,7 +10,7 @@ import { FlatMapSelector, InvalidKeys, Rongo, ScanReport } from "../.";
 
 // This function is used to find and collect all invalid keys in the database, revealing integrity problems
 
-export async function databaseScan(
+export async function scanDatabase(
   rongo: Rongo,
   options?: { batchSize?: number; limit?: number }
 ) {
