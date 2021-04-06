@@ -94,7 +94,12 @@ export function normalizeInsertionDoc<T extends Document>(
       }
       // If verification is on, check if "value" points to a valid foreign document :
       if (foreignKeyConfig.onInsert === InsertPolicy.Verify)
-        if (!(await foreignCol.count({ [foreignCol.key]: value })))
+        if (
+          !(await foreignCol.has(
+            { [foreignCol.key]: value },
+            { baseQuery: true }
+          ))
+        )
           throw new Error(
             `Invalid foreign key <${key}> in insertion document for collection <${collection.name}> : no document with primary key <${value}> in collection<${foreignCol.name}>`
           );
@@ -117,9 +122,10 @@ export function normalizeInsertionDoc<T extends Document>(
       );
       // If verification is on, check if every foreign key points to an actual foreign document :
       if (foreignKeyConfig.onInsert === InsertPolicy.Verify) {
-        const count = await foreignCol.count({
-          [foreignCol.key]: { $in: value }
-        });
+        const count = await foreignCol.count(
+          { [foreignCol.key]: { $in: value } },
+          { baseQuery: true }
+        );
         if (value.length !== count)
           throw new Error(
             `Invalid foreign key <${key}> in insertion document for collection <${collection.name}> : some keys don't refer to actual documents in collection <${foreignCol.name}>`
