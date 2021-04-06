@@ -107,7 +107,7 @@ Result:
 ### **▶️ Populate and aggregate custom results :**
 
 ```javascript
-await Author.findOne({ title: /.*Rowling$/ }).select`favoriteBooks title`;
+await Author.findOne({ name: /.*Rowling$/ }).select`favoriteBooks title`;
 ```
 
 Result:
