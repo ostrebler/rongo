@@ -3,6 +3,7 @@ export * from "./buildGraph";
 export * from "./mapDeep";
 export * from "./scanDatabase";
 export * from "./normalizeFilterQuery";
+export * from "./findReferences";
 export * from "./insertNested";
 export * from "./propagateDelete";
 export * from "./helpers";

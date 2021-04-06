@@ -20,20 +20,20 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { entries, isArray, isString, keys } from "lodash";
+import { isArray, isString } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
   DependencyCollector,
   Document,
   FilterQuery,
+  findReferences,
   InsertionDoc,
   insertNested,
   normalizeFilterQuery,
   normalizeInsertionDoc,
   parseSelector,
   propagateDelete,
-  References,
   RemoveScheduler,
   Rongo,
   Selectable,
@@ -139,25 +139,8 @@ export class Collection<T extends Document> {
     });
   }
 
-  async findReferences(
-    key: any | Array<any>,
-    options?: { keysOnly?: boolean }
-  ) {
-    key = isArray(key) ? key : [key];
-    const references: References = Object.create(null);
-    for (const [colName, foreignKeys] of entries(this.references)) {
-      const refCol = this.rongo.collection(colName);
-      for (const foreignKey of keys(foreignKeys)) {
-        const promise = refCol.find(
-          { [foreignKey]: { $in: key } },
-          { baseQuery: true }
-        );
-        references[colName] = await (options?.keysOnly
-          ? promise
-          : promise.select(refCol.key));
-      }
-    }
-    return references;
+  findReferences(key: any | Array<any>, options?: { keysOnly?: boolean }) {
+    return findReferences(this, isArray(key) ? key : [key], options);
   }
 
   async geoHaystackSearch(

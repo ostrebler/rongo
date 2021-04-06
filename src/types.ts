@@ -115,5 +115,7 @@ export type SelectablePromise<T> = Promise<T> & {
 // Used when collecting foreign references to keys
 
 export type References = {
-  [collection: string]: Array<any>;
+  [collection: string]: {
+    [foreignKey: string]: Array<any>;
+  };
 };
