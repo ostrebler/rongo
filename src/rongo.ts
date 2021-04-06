@@ -18,7 +18,6 @@ import {
   Graph,
   loadSchema,
   ObjectId,
-  scanDatabase,
   Schema
 } from ".";
 
@@ -69,7 +68,8 @@ export class Rongo {
   }
 
   scan(options?: { batchSize?: number; limit?: number }) {
-    return scanDatabase(this, options);
+    throw new Error("Scanning is not implemented yet");
+    // return scanDatabase(this, options);
   }
 
   collection<T extends Document>(name: string, options?: DbCollectionOptions) {
