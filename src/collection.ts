@@ -392,21 +392,24 @@ export class Collection<T extends Document> {
     return col.drop();
   }
 
-  async findOneAndDelete(
+  findOneAndDelete(
     query: FilterQuery<T>,
     options?: FindOneOptions<T> & {
       propagate?: boolean;
       baseQuery?: boolean;
     }
   ) {
-    const normalized = await normalizeFilterQuery(this, query, options);
-    const promise = this.findOne(normalized, { ...options, baseQuery: true });
-    await this.delete(normalized, {
-      ...options,
-      single: true,
-      baseQuery: true
+    return selectablePromise(this, async () => {
+      const col = await this.handle;
+      const normalized = await normalizeFilterQuery(this, query, options);
+      const result = await col.findOne(normalized, options as object);
+      await this.delete(normalized, {
+        ...options,
+        single: true,
+        baseQuery: true
+      });
+      return result;
     });
-    return promise;
   }
 
   findByKeyAndDelete(
