@@ -195,7 +195,7 @@ export class Collection<T extends Document> {
     return col.watch<U>(pipeline, options);
   }
 
-  // Insert/replace methods :
+  // Insert method :
 
   insert(
     doc: InsertionDoc<T>,
@@ -224,6 +224,36 @@ export class Collection<T extends Document> {
         await dependencies.delete();
         throw e;
       }
+    });
+  }
+
+  // Replace methods :
+
+  async replaceOne(
+    query: FilterQuery<T>,
+    doc: InsertionDoc<T>,
+    options?: ReplaceOneOptions & { baseQuery?: boolean }
+  ) {
+    const col = await this.handle;
+    const normalizedQuery = await normalizeFilterQuery(this, query, options);
+    const dependencies = new DependencyCollector(this.rongo);
+    try {
+      const normalizedDoc = await normalizeInsertionDoc(
+        this,
+        doc,
+        dependencies
+      );
+      return col.replaceOne(normalizedQuery, normalizedDoc as T, options);
+    } catch (e) {
+      await dependencies.delete();
+      throw e;
+    }
+  }
+
+  replaceByKey(key: any, doc: InsertionDoc<T>, options?: ReplaceOneOptions) {
+    return this.replaceOne({ [this.key]: key } as FilterQuery<T>, doc, {
+      ...options,
+      baseQuery: true
     });
   }
 
@@ -266,27 +296,6 @@ export class Collection<T extends Document> {
     });
   }
 
-  async replaceOne(
-    query: FilterQuery<T>,
-    doc: InsertionDoc<T>,
-    options?: ReplaceOneOptions & { baseQuery?: boolean }
-  ) {
-    const col = await this.handle;
-    const normalizedQuery = await normalizeFilterQuery(this, query, options);
-    const dependencies = new DependencyCollector(this.rongo);
-    try {
-      const normalizedDoc = await normalizeInsertionDoc(
-        this,
-        doc,
-        dependencies
-      );
-      return col.replaceOne(normalizedQuery, normalizedDoc as T, options);
-    } catch (e) {
-      await dependencies.delete();
-      throw e;
-    }
-  }
-
   // Update methods :
 
   async update(
@@ -301,6 +310,17 @@ export class Collection<T extends Document> {
       update,
       options
     );
+  }
+
+  updateByKey(
+    key: any,
+    update: UpdateQuery<T> | Partial<T>,
+    options?: UpdateManyOptions
+  ) {
+    return this.update({ [this.key]: key } as FilterQuery<T>, update, {
+      ...options,
+      baseQuery: true
+    });
   }
 
   findOneAndUpdate(
@@ -351,6 +371,19 @@ export class Collection<T extends Document> {
     );
     for (const task of scheduler) await task();
     return remover();
+  }
+
+  deleteByKey(
+    key: any,
+    options: CommonOptions & {
+      propagate?: boolean;
+    }
+  ) {
+    return this.delete({ [this.key]: key } as FilterQuery<T>, {
+      ...options,
+      single: true,
+      baseQuery: true
+    });
   }
 
   async drop(options?: { session: ClientSession; propagate?: boolean }) {
