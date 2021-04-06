@@ -73,7 +73,7 @@ The **Book** and **Author** collections then respectively contain :
 await Book.findOne({
   author: {
     $in: {
-      name: /.*Rowling$/
+      name: "J.K. Rowling"
     }
   }
 });
@@ -88,12 +88,10 @@ Result:
 ### **▶️ Populate results with a simple, expressive and powerful selection syntax :**
 
 ```javascript
-await Book.findOne({ title: /.*Potter$/ }).select`
+await Book.findOne({ title: "Harry Potter" }).select`
   {
     *,
-    author {
-      name
-    }
+    author { name }
   }
 `;
 ```
@@ -107,7 +105,7 @@ Result:
 ### **▶️ Populate and aggregate custom results :**
 
 ```javascript
-await Author.findOne({ name: /.*Rowling$/ }).select`favoriteBooks title`;
+await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
 ```
 
 Result:
@@ -132,11 +130,11 @@ The **Book** and **Author** collections then respectively contain :
 { _id: ObjectID("606cbf3ac0680a044501108b"), name: "J.K. Rowling", favoriteBooks: [] }
 ```
 
-📌 _By deleting the author "Jane Austen", her book "Emma" was deleted too, and so was its entry in J.K. Rowling's favorite book list._
+> 📌 _By deleting the author "Jane Austen", her book "Emma" was deleted too, and so was its entry in J.K. Rowling's favorite book list._
 
 ## Other features
 
-- The augmentation of the insertion or filter syntax to include relational stuff is a superset of the original syntax. **Everything written using the conventional syntax will work with Rongo**.
+- The augmentation of the insertion and filter syntax to include relational stuff is a superset of the original syntax. **Everything written using the conventional syntax will work with Rongo**.
 - You can opt-out the relational enhancements if you wish by playing with options, and just use Rongo as a regular MongoDB driver (like [mongoose](https://github.com/Automattic/mongoose), [monk](https://github.com/Automattic/monk), [mongoist](https://github.com/mongoist/mongoist), etc.). For example :
 
 ```javascript
