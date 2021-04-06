@@ -1,6 +1,6 @@
 # Rongo
 
-A happy marriage between relational storage and the NoSQL world. Promise-based.
+A happy marriage between the relational and the NoSQL world. Promise-based.
 
 ---
 
