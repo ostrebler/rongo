@@ -9,7 +9,7 @@ import {
   RemoveScheduler
 } from "../.";
 
-export async function propagateRemove<T extends Document>(
+export async function propagateDelete<T extends Document>(
   collection: Collection<T>,
   query: FilterQueryBase<T>,
   single: boolean,
@@ -42,7 +42,7 @@ export async function propagateRemove<T extends Document>(
           case DeletePolicy.Delete:
             // Recursively propagate removal in reference collection :
             scheduler.push(
-              await propagateRemove(
+              await propagateDelete(
                 refCol,
                 refQuery,
                 false,

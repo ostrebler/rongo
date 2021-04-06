@@ -4,6 +4,6 @@ export * from "./mapDeep";
 export * from "./scanDatabase";
 export * from "./normalizeFilterQuery";
 export * from "./insertNested";
-export * from "./propagateRemove";
+export * from "./propagateDelete";
 export * from "./helpers";
 export * from "./selector";

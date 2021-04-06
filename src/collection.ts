@@ -32,7 +32,7 @@ import {
   normalizeFilterQuery,
   normalizeInsertionDoc,
   parseSelector,
-  propagateRemove,
+  propagateDelete,
   References,
   RemoveScheduler,
   Rongo,
@@ -330,7 +330,7 @@ export class Collection<T extends Document> {
 
   // Delete methods :
 
-  async remove(
+  async delete(
     query: FilterQuery<T> = {},
     options?: CommonOptions & {
       single?: boolean;
@@ -341,7 +341,7 @@ export class Collection<T extends Document> {
     const normalized = await normalizeFilterQuery(this, query, options);
     const scheduler: RemoveScheduler = [];
     const deletedKeys: DeletedKeys = Object.create(null);
-    const remover = await propagateRemove(
+    const remover = await propagateDelete(
       this,
       normalized,
       options?.single ?? false,
@@ -355,7 +355,7 @@ export class Collection<T extends Document> {
 
   async drop(options?: { session: ClientSession; propagate?: boolean }) {
     const col = await this.handle;
-    await this.remove({}, { ...options, baseQuery: true });
+    await this.delete({}, { ...options, baseQuery: true });
     return col.drop();
   }
 
@@ -368,7 +368,7 @@ export class Collection<T extends Document> {
   ) {
     const normalized = await normalizeFilterQuery(this, query, options);
     const promise = this.findOne(normalized, { ...options, baseQuery: true });
-    await this.remove(normalized, {
+    await this.delete(normalized, {
       ...options,
       single: true,
       baseQuery: true
