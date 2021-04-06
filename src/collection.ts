@@ -123,16 +123,16 @@ export class Collection<T extends Document> {
 
   findOne(
     query: FilterQuery<T> = {},
-    options?: FindOneOptions<T extends T ? T : T> & { baseQuery?: boolean }
+    options?: FindOneOptions<T> & { baseQuery?: boolean }
   ) {
     return selectablePromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query, options);
-      return col.findOne(normalized, options);
+      return col.findOne(normalized, options as object);
     });
   }
 
-  findByKey(key: any, options?: FindOneOptions<T extends T ? T : T>) {
+  findByKey(key: any, options?: FindOneOptions<T>) {
     return this.findOne({ [this.key]: key } as FilterQuery<T>, {
       ...options,
       baseQuery: true
@@ -361,7 +361,7 @@ export class Collection<T extends Document> {
 
   async findOneAndDelete(
     query: FilterQuery<T>,
-    options?: FindOneOptions<T extends T ? T : T> & {
+    options?: FindOneOptions<T> & {
       propagate?: boolean;
       baseQuery?: boolean;
     }
@@ -378,7 +378,7 @@ export class Collection<T extends Document> {
 
   findByKeyAndDelete(
     key: any,
-    options?: FindOneOptions<T extends T ? T : T> & { propagate?: boolean }
+    options?: FindOneOptions<T> & { propagate?: boolean }
   ) {
     return this.findOneAndDelete({ [this.key]: key } as FilterQuery<T>, {
       ...options,
