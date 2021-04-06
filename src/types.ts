@@ -21,7 +21,6 @@ export type CollectionConfig = {
 
 export type ForeignKeyConfig = {
   path: Path;
-  selector: Selector;
   collection: string;
   optional: boolean;
   nullable: boolean;

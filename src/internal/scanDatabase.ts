@@ -6,7 +6,7 @@ import {
   min,
   uniqBy
 } from "lodash";
-import { FlatMapSelector, InvalidKeys, Rongo, ScanReport } from "../.";
+import { InvalidKeys, Rongo, ScanReport } from "../.";
 
 // This function is used to find and collect all invalid keys in the database, revealing integrity problems
 
@@ -53,10 +53,11 @@ export async function scanDatabase(
         config.foreignKeys
       )) {
         // Get all values for that foreign key in the current batch :
-        let keys: Array<any> = await collection.resolve(
+        /*let keys: Array<any> = await collection.resolve(
           new FlatMapSelector(foreignKeyConfig.selector),
           documents
-        );
+        );*/
+        let keys: Array<any> = [];
 
         // If there is an unexpected nullish value, signal it :
         if (!foreignKeyConfig.optional && keys.includes(undefined))
