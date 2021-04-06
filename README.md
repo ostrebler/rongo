@@ -85,34 +85,39 @@ Result:
 { _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: ObjectID("606cbf3ac0680a044501108b") }
 ```
 
-### **▶️ Populate results with a simple, expressive and powerful selection syntax :**
-
-```javascript
-await Book.findOne({ title: "Harry Potter" }).select`
-  {
-    *,
-    author { name }
-  }
-`;
-```
-
-Result:
-
-```
-{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: { name: "J.K. Rowling" } }
-```
-
-### **▶️ Populate and aggregate custom results :**
+### **▶️ Populate and aggregate results with a simple yet expressive selection syntax :**
 
 ```javascript
 await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
 ```
 
-Result:
-
 ```
 ["Emma"]
 ```
+
+---
+
+```javascript
+await Book.findOne({ title: "Harry Potter" }).select`author name`;
+```
+
+```
+"J.K. Rowling"
+```
+
+---
+
+```javascript
+await Book.findOne({ title: "Harry Potter" }).select`{ *, author { name } }`;
+```
+
+```
+{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: { name: "J.K. Rowling" } }
+```
+
+---
+
+> 📌 _Selectors are a powerful concept which allows you to do **really** a lot of useful things. More about them in the [Selector](h) section._
 
 ### **▶️ Cascade-delete related documents :**
 
