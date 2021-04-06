@@ -70,7 +70,7 @@ The **Book** and **Author** collections then respectively contain :
 ### **▶️ Nest related filter queries :**
 
 ```javascript
-await Book.find({
+await Book.findOne({
   author: {
     $in: {
       name: /.*Rowling$/
@@ -82,7 +82,7 @@ await Book.find({
 Result:
 
 ```
-[{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: ObjectID("606cbf3ac0680a044501108b") }]
+{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: ObjectID("606cbf3ac0680a044501108b") }
 ```
 
 ### **▶️ Populate results with a simple, expressive and powerful selection syntax :**
