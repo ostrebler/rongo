@@ -1,6 +1,10 @@
 # Rongo
 
-A happy marriage between the relational and the NoSQL world. Promise-based.
+> What is Rongo ?
+
+- A Promise-based NodeJS driver for MongoDB.
+- A happy marriage between the relational and the NoSQL world.
+- An elegant way to avoid subdocument management hell without additional complexity.
 
 ---
 
