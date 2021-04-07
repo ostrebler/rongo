@@ -86,14 +86,7 @@ export class FieldSelector extends Selector {
       // If value represents foreign key(s) :
       const foreignKeyConfig = collection.foreignKeys[stackToKey(stack)];
       if (foreignKeyConfig) {
-        // If foreign key(s) is nullish and if it's legal, an implicit shortcut is applied :
-        if (
-          (foreignKeyConfig.optional && value === undefined) ||
-          (foreignKeyConfig.nullable && value === null)
-        )
-          return value;
-
-        // Otherwise, switch to foreign collection :
+        // Switch to foreign collection :
         collection = collection.rongo.collection(foreignKeyConfig.collection);
         // Select foreign document(s) as current value :
         if (!isArray(value))
@@ -101,10 +94,26 @@ export class FieldSelector extends Selector {
             { [collection.key]: value },
             { baseQuery: true }
           );
-        else
+        else if (!options?.resolveExactArrays)
           value = new LazyDocuments(collection, [
             { [collection.key]: { $in: value } }
           ]);
+        else {
+          const keyed: Record<string, any> = Object.create(null);
+          const documents = await collection.find(
+            { [collection.key]: { $in: value } },
+            { baseQuery: true }
+          );
+          for (const document of documents)
+            keyed[
+              await collection
+                .select(collection.key, document)
+                .then(key => key.toString())
+            ] = document;
+          value = value.map(key =>
+            [null, undefined].includes(key) ? key : keyed[key.toString()]
+          );
+        }
         // And reinitialize the stack :
         stack = [];
       }

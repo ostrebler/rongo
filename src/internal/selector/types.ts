@@ -29,4 +29,5 @@ export type SymTable = Map<string, SelectSymbolEntry>;
 
 export type SelectionOption = {
   resolveForeignKeys?: boolean;
+  resolveExactArrays?: boolean;
 };
