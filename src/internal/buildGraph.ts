@@ -41,7 +41,7 @@ export function buildGraph(schema: unknown) {
         collection: pathConfig.collection ?? collection,
         optional: pathConfig.optional ?? false,
         nullable: pathConfig.nullable ?? false,
-        onInsert: pathConfig.onInsert ?? InsertPolicy.Bypass,
+        onInsert: pathConfig.onInsert ?? InsertPolicy.Verify,
         onDelete: pathConfig.onDelete ?? DeletePolicy.Bypass
       };
 
