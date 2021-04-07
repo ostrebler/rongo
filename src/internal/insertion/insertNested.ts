@@ -19,11 +19,16 @@ import {
 export async function insertNested<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-  options: CollectionInsertManyOptions | undefined,
-  dependencies: DependencyCollector
+  dependencies: DependencyCollector,
+  options?: CollectionInsertManyOptions & { baseDocument?: boolean }
 ) {
   const col = await collection.handle;
-  const normalized = await normalizeInsertionDoc(collection, doc, dependencies);
+  const normalized = await normalizeInsertionDoc(
+    collection,
+    doc,
+    dependencies,
+    options
+  );
   await verifyInsertionDoc(collection, normalized);
   let result:
     | InsertOneWriteOpResult<WithId<T>>

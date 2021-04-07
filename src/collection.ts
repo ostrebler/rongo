@@ -187,27 +187,27 @@ export class Collection<T extends Document> {
 
   insert(
     doc: InsertionDoc<T>,
-    options?: CollectionInsertManyOptions
+    options?: CollectionInsertManyOptions & { baseDocument?: boolean }
   ): SelectablePromise<WithId<T>>;
 
   insert(
     docs: Array<InsertionDoc<T>>,
-    options?: CollectionInsertManyOptions
+    options?: CollectionInsertManyOptions & { baseDocument?: boolean }
   ): SelectablePromise<Array<WithId<T>>>;
 
   insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertManyOptions
+    options?: CollectionInsertManyOptions & { baseDocument?: boolean }
   ): SelectablePromise<WithId<T> | Array<WithId<T>>>;
 
   insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertManyOptions
+    options?: CollectionInsertManyOptions & { baseDocument?: boolean }
   ) {
     return selectablePromise(this, async () => {
       const dependencies = new DependencyCollector(this.rongo);
       try {
-        return insertNested(this, doc, options, dependencies);
+        return insertNested(this, doc, dependencies, options);
       } catch (e) {
         await dependencies.delete();
         throw e;
