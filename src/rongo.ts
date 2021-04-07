@@ -24,20 +24,27 @@ import {
 // The Rongo class
 
 export class Rongo {
-  readonly name: string;
-  graph: Graph;
   readonly client: Promise<MongoClient>;
   readonly handle: Promise<Db>;
+  graph: Graph;
   isConnected: boolean;
 
-  constructor(uri: string, name: string, options?: MongoClientOptions) {
-    this.name = name;
-    this.graph = Object.create(null);
-    this.client = MongoClient.connect(uri, {
-      useUnifiedTopology: true,
-      ...options
+  constructor(uri: string | Promise<string>, options?: MongoClientOptions) {
+    this.client = Promise.resolve(uri).then(uri =>
+      MongoClient.connect(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        ...options
+      })
+    );
+    this.handle = this.client.then(client => {
+      const dbName = (client as any).s.options.dbName;
+      console.log(dbName);
+      if (!dbName)
+        throw new Error("The connection uri must contain a database name");
+      return client.db(dbName);
     });
-    this.handle = this.client.then(client => client.db(name));
+    this.graph = Object.create(null);
     this.isConnected = false;
     this.client.then(client => {
       this.isConnected = client.isConnected();

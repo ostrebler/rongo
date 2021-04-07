@@ -18,7 +18,7 @@ import {
 import { graph, populateTest, rongo, User } from "./samples";
 
 it("correctly loads and parses YAML and JSON configuration files", async () => {
-  const rongoYml = new Rongo("mongodb://localhost:27017", "rongo_test");
+  const rongoYml = new Rongo("mongodb://localhost:27017/rongo_test");
   rongoYml.schema("./src/test/schema.test.yaml");
   expect(rongo.graph).toEqual(rongoYml.graph);
   expect(rongo.graph).toEqual(graph);

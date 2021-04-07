@@ -2,7 +2,7 @@ import { DeletePolicy, Graph, InsertPolicy, ObjectId, Rongo } from "../.";
 
 // The main test database
 
-export const rongo = new Rongo("mongodb://localhost:27017", "rongo_test");
+export const rongo = new Rongo("mongodb://localhost:27017/rongo_test");
 rongo.schema("./src/test/schema.test.json");
 
 // Some types for TS testing
