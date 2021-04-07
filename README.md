@@ -2,7 +2,7 @@
 
 > What is Rongo ?
 
-🔰️ A Promise-based NodeJS driver for MongoDB.\
+🔰️ A fully-typed Promise-based NodeJS driver for MongoDB.\
 💍️ A happy marriage between the relational and the NoSQL world.\
 🏃 An elegant way to escape subdocument hell without additional complexity.
 
@@ -166,7 +166,7 @@ await Book.findOne({ title: "Harry Potter" }).select`{ *, author { name } }`;
 
 ---
 
-> 📌 _Selectors are a powerful concept which allows you to do **really** a lot of useful things. More about them in the [Selector](h) section._
+> 📌 _Selectors are a powerful concept which allows you to do **really** a lot of useful things. More about them in the [Selector](#selectors) section._
 
 ### **▶️ Cascade-delete related documents :**
 
