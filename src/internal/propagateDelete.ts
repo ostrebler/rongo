@@ -204,5 +204,5 @@ function toPullUpdater(path: Path) {
       },
       [[], [], false]
     );
-  return [target.join("."), filter.join(".")] as const;
+  return [target.join("."), isEmpty(filter) ? null : filter.join(".")] as const;
 }
