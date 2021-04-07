@@ -1,5 +1,5 @@
 import { entries, isEmpty, keys } from "lodash";
-import { Collection, References } from "../.";
+import { Collection, IdentitySelector, References } from "../.";
 
 export async function findReferences(
   collection: Collection<any>,
@@ -27,17 +27,15 @@ export async function findReferences(
     // For each relevant foreign key in that collection :
     for (const foreignKey of keys(foreignKeys)) {
       // Find all documents where the foreign key points to a key of interest :
-      const promise = refCol.find(
-        { [foreignKey]: { $in: allKeys } },
-        {
-          baseQuery: true,
-          ...(options?.keysOnly && { projection: { [refCol.key]: 1 } })
-        }
-      );
-      // Store the results is there are :
-      const result = await (options?.keysOnly
-        ? promise
-        : promise.select(refCol.key));
+      const result = await refCol
+        .find(
+          { [foreignKey]: { $in: allKeys } },
+          {
+            baseQuery: true,
+            ...(options?.keysOnly && { projection: { [refCol.key]: 1 } })
+          }
+        )
+        .select(options?.keysOnly ? refCol.key : new IdentitySelector());
       if (!isEmpty(result)) mergeReference(colName, foreignKey, result);
     }
   }
