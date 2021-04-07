@@ -61,7 +61,7 @@ await Book.insert({
 
 The **Book** and **Author** collections then respectively contain :
 
-```json
+```bson
 [
   {
     "_id": ObjectID("606cbeab251aa79ab35ffd05"),
@@ -76,7 +76,7 @@ The **Book** and **Author** collections then respectively contain :
 ]
 ```
 
-```json
+```bson
 [
   {
     "_id": ObjectID("606cbf193aaa317e81b97150"),
@@ -103,7 +103,7 @@ await Book.find({
 });
 ```
 
-```json
+```bson
 [
   {
     "_id": ObjectID("606cbed349af304a1e828338"),
@@ -119,7 +119,7 @@ await Book.find({
 await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
 ```
 
-```json
+```bson
 ["Emma"]
 ```
 
@@ -129,7 +129,7 @@ await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
 await Book.findOne({ title: "Harry Potter" }).select`author name`;
 ```
 
-```json
+```bson
 "J.K. Rowling"
 ```
 
@@ -139,7 +139,7 @@ await Book.findOne({ title: "Harry Potter" }).select`author name`;
 await Book.findOne({ title: "Harry Potter" }).select`{ *, author { name } }`;
 ```
 
-```json
+```bson
 {
   "_id": ObjectID("606cbed349af304a1e828338"),
   "title": "Harry Potter",
@@ -159,7 +159,7 @@ await Author.delete({ name: "Jane Austen" });
 
 The **Book** and **Author** collections then respectively contain :
 
-```json
+```bson
 [
   {
     "_id": ObjectID("606cbed349af304a1e828338"),
@@ -169,7 +169,7 @@ The **Book** and **Author** collections then respectively contain :
 ]
 ```
 
-```json
+```bson
 [
   {
     "_id": ObjectID("606cbf3ac0680a044501108b"),
