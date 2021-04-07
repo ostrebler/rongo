@@ -12,6 +12,7 @@ import {
   Selectable,
   SelectablePromise,
   SelectArgument,
+  SelectionOption,
   Selector,
   Stack
 } from "../.";
@@ -79,14 +80,22 @@ export function selectablePromise<T extends Document, S extends Selectable<T>>(
   return assign(promise, {
     select(
       chunks: TemplateStringsArray | string | Selector,
+      arg: SelectArgument | SelectionOption | undefined,
       ...args: Array<SelectArgument>
     ) {
       let selector: Selector;
-      if (isString(chunks)) selector = parseSelector(chunks);
-      else if (chunks instanceof Selector) selector = chunks;
-      else selector = select(chunks, ...args);
+      let options: SelectionOption | undefined;
+      if (isString(chunks)) {
+        selector = parseSelector(chunks);
+        options = arg as SelectionOption | undefined;
+      } else if (chunks instanceof Selector) {
+        selector = chunks;
+        options = arg as SelectionOption | undefined;
+      } else
+        selector =
+          arg === undefined ? select(chunks) : select(chunks, arg, ...args);
       return promise.then(selectable =>
-        collection.resolve(selector, selectable)
+        collection.resolve(selector, selectable, options)
       );
     }
   });

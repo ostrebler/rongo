@@ -1,5 +1,5 @@
 import { WithId } from "mongodb";
-import { SelectArgument, Selector } from ".";
+import { SelectArgument, SelectionOption, Selector } from ".";
 
 // Used to store the collection dependencies in an optimally exploitable manner
 
@@ -101,10 +101,14 @@ export type Selectable<T extends Document> =
 
 export type SelectablePromise<T> = Promise<T> & {
   select<K extends T extends Array<infer U> ? keyof U : never>(
-    selector: K
+    selector: K,
+    options?: SelectionOption
   ): Promise<T extends Array<infer U> ? Array<U[K]> : never>;
-  select<K extends keyof T>(selector: K): Promise<T[K]>;
-  select(selector: string | Selector): Promise<any>;
+  select<K extends keyof T>(
+    selector: K,
+    options?: SelectionOption
+  ): Promise<T[K]>;
+  select(selector: string | Selector, options?: SelectionOption): Promise<any>;
   select(
     chunks: TemplateStringsArray,
     ...args: Array<SelectArgument>

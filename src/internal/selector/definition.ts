@@ -4,6 +4,7 @@ import {
   Collection,
   FilterQuery,
   LazyDocuments,
+  SelectionOption,
   SelectorPredicateCallback,
   Stack,
   stackToKey
@@ -37,7 +38,8 @@ export abstract class Selector {
   abstract resolve(
     value: any,
     collection: Collection<any>,
-    stack: Stack
+    stack: Stack,
+    options?: SelectionOption
   ): Promise<any>;
 }
 
@@ -64,11 +66,12 @@ export class FieldSelector extends Selector {
   async resolve(
     value: any,
     collection: Collection<any>,
-    stack: Stack
+    stack: Stack,
+    options?: SelectionOption
   ): Promise<any> {
     // If the current value is an array, insert an implicit mapping :
     if (isArray(value) || value instanceof LazyDocuments)
-      return new MapSelector(this).resolve(value, collection, stack);
+      return new MapSelector(this).resolve(value, collection, stack, options);
     // Otherwise, it has to be an object :
     if (!isPlainObject(value))
       throw new Error(
@@ -78,33 +81,36 @@ export class FieldSelector extends Selector {
     value = (value as any)[this.field];
     stack = [...stack, this.field];
 
-    // If value represents foreign key(s), then...
-    const foreignKeyConfig = collection.foreignKeys[stackToKey(stack)];
-    if (foreignKeyConfig) {
-      // If foreign key(s) is nullish and if it's legal, an implicit shortcut is applied :
-      if (
-        (foreignKeyConfig.optional && value === undefined) ||
-        (foreignKeyConfig.nullable && value === null)
-      )
-        return value;
+    // If we have to resolve foreign keys :
+    if (options?.resolveForeignKeys ?? true) {
+      // If value represents foreign key(s) :
+      const foreignKeyConfig = collection.foreignKeys[stackToKey(stack)];
+      if (foreignKeyConfig) {
+        // If foreign key(s) is nullish and if it's legal, an implicit shortcut is applied :
+        if (
+          (foreignKeyConfig.optional && value === undefined) ||
+          (foreignKeyConfig.nullable && value === null)
+        )
+          return value;
 
-      // ...switch to foreign collection :
-      collection = collection.rongo.collection(foreignKeyConfig.collection);
-      // ...select foreign document(s) as current value :
-      if (!isArray(value))
-        value = await collection.findOne(
-          { [collection.key]: value },
-          { baseQuery: true }
-        );
-      else
-        value = new LazyDocuments(collection, [
-          { [collection.key]: { $in: value } }
-        ]);
-      // ...and reinitialize the stack :
-      stack = [];
+        // Otherwise, switch to foreign collection :
+        collection = collection.rongo.collection(foreignKeyConfig.collection);
+        // Select foreign document(s) as current value :
+        if (!isArray(value))
+          value = await collection.findOne(
+            { [collection.key]: value },
+            { baseQuery: true }
+          );
+        else
+          value = new LazyDocuments(collection, [
+            { [collection.key]: { $in: value } }
+          ]);
+        // And reinitialize the stack :
+        stack = [];
+      }
     }
 
-    return this.selector.resolve(value, collection, stack);
+    return this.selector.resolve(value, collection, stack, options);
   }
 }
 
@@ -120,14 +126,24 @@ export class IndexSelector extends Selector {
     this.selector = selector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     // If the current value if arrayish, simply access to the targeted item :
     if (isArray(value)) value = value[this.index];
     else if (value instanceof LazyDocuments)
       value = await value.fetchOne(this.index);
     else
       throw new Error(`Can't resolve index <${this.index}> in non-array value`);
-    return this.selector.resolve(value, collection, [...stack, this.index]);
+    return this.selector.resolve(
+      value,
+      collection,
+      [...stack, this.index],
+      options
+    );
   }
 }
 
@@ -141,9 +157,14 @@ export class ShortcutSelector extends Selector {
     this.selector = selector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     if (value === null || value === undefined) return value;
-    return this.selector.resolve(value, collection, stack);
+    return this.selector.resolve(value, collection, stack, options);
   }
 }
 
@@ -157,14 +178,19 @@ export class MapSelector extends Selector {
     this.selector = selector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value)) throw new Error("Can't map ($) a non-array value");
     // Map the items to subselections :
     return Promise.all(
       value.map((item, index) =>
-        this.selector.resolve(item, collection, [...stack, index])
+        this.selector.resolve(item, collection, [...stack, index], options)
       )
     );
   }
@@ -180,7 +206,12 @@ export class FlatMapSelector extends Selector {
     this.selector = selector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value))
@@ -189,7 +220,7 @@ export class FlatMapSelector extends Selector {
     return flatten(
       await Promise.all(
         value.map((item, index) =>
-          this.selector.resolve(item, collection, [...stack, index])
+          this.selector.resolve(item, collection, [...stack, index], options)
         )
       )
     );
@@ -208,7 +239,12 @@ export class FilterSelector extends Selector {
     this.selector = selector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value))
@@ -217,7 +253,8 @@ export class FilterSelector extends Selector {
     return this.selector.resolve(
       await asyncFilter(value, this.predicate),
       collection,
-      stack
+      stack,
+      options
     );
   }
 }
@@ -240,12 +277,21 @@ export class SwitchSelector extends Selector {
     this.elseSelector = elseSelector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     // If it's an array, all items are needed, so unlazy lazy arrays :
     if (value instanceof LazyDocuments) value = await value.fetch();
-    return this[
-      (await this.predicate(value, -1, [])) ? "ifSelector" : "elseSelector"
-    ].resolve(value, collection, stack);
+    const test = await this.predicate(value, -1, []);
+    return (test ? this.ifSelector : this.elseSelector).resolve(
+      value,
+      collection,
+      stack,
+      options
+    );
   }
 }
 
@@ -261,10 +307,20 @@ export class FilterQuerySelector extends Selector {
     this.selector = selector;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     // Simply add a filter query to the current lazy array of documents and keep selecting from there :
     if (value instanceof LazyDocuments)
-      return this.selector.resolve(value.extend(this.query), collection, stack);
+      return this.selector.resolve(
+        value.extend(this.query),
+        collection,
+        stack,
+        options
+      );
     throw new Error(
       "Can't apply MongoDB filter query to non-lazy arrays of documents"
     );
@@ -281,9 +337,16 @@ export class TupleSelector extends Selector {
     this.selectors = selectors;
   }
 
-  async resolve(value: any, collection: Collection<any>, stack: Stack) {
+  async resolve(
+    value: any,
+    collection: Collection<any>,
+    stack: Stack,
+    options?: SelectionOption
+  ) {
     return Promise.all(
-      this.selectors.map(selector => selector.resolve(value, collection, stack))
+      this.selectors.map(selector =>
+        selector.resolve(value, collection, stack, options)
+      )
     );
   }
 }
@@ -301,11 +364,12 @@ export class ObjectSelector extends Selector {
   async resolve(
     value: any,
     collection: Collection<any>,
-    stack: Stack
+    stack: Stack,
+    options?: SelectionOption
   ): Promise<any> {
     // If the current value is an array, insert implicit mapping :
     if (isArray(value) || value instanceof LazyDocuments)
-      return new MapSelector(this).resolve(value, collection, stack);
+      return new MapSelector(this).resolve(value, collection, stack, options);
     // Otherwise, it has to be an object :
     if (!isPlainObject(value))
       throw new Error(
@@ -318,7 +382,8 @@ export class ObjectSelector extends Selector {
         result[field] = await new FieldSelector(field, selector).resolve(
           value,
           collection,
-          stack
+          stack,
+          options
         );
       } else {
         // In the case of a wildcard field, do the same as above with the remaining keys in "value" :
@@ -327,7 +392,8 @@ export class ObjectSelector extends Selector {
             result[field] = await new FieldSelector(field, selector).resolve(
               value,
               collection,
-              stack
+              stack,
+              options
             );
       }
     return result;

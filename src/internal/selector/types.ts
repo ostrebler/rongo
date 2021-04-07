@@ -24,3 +24,9 @@ export type SelectSymbolEntry = Exclude<SelectArgument, string | number>;
 // The selector parsing symbol table
 
 export type SymTable = Map<string, SelectSymbolEntry>;
+
+// These are the options you can parametrize selections with
+
+export type SelectionOption = {
+  resolveForeignKeys?: boolean;
+};

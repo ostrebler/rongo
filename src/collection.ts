@@ -39,6 +39,7 @@ import {
   Selectable,
   SelectablePromise,
   selectablePromise,
+  SelectionOption,
   Selector
 } from ".";
 
@@ -72,9 +73,13 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
-  resolve(selector: string | Selector, selectable: Selectable<T>) {
+  resolve(
+    selector: string | Selector,
+    selectable: Selectable<T>,
+    options?: SelectionOption
+  ) {
     if (isString(selector)) selector = parseSelector(selector);
-    return selector.resolve(selectable, this, []);
+    return selector.resolve(selectable, this, [], options);
   }
 
   async aggregate<U = T>(
