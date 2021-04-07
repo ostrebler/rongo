@@ -61,20 +61,40 @@ await Book.insert({
 
 The **Book** and **Author** collections then respectively contain :
 
-```
-{ _id: ObjectID("606cbeab251aa79ab35ffd05"), title: "Emma", author: ObjectID("606cbf193aaa317e81b97150") }
-{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: ObjectID("606cbf3ac0680a044501108b") }
+```json
+[
+  {
+    "_id": ObjectID("606cbeab251aa79ab35ffd05"),
+    "title": "Emma",
+    "author": ObjectID("606cbf193aaa317e81b97150")
+  },
+  {
+    "_id": ObjectID("606cbed349af304a1e828338"),
+    "title": "Harry Potter",
+    "author": ObjectID("606cbf3ac0680a044501108b")
+  }
+]
 ```
 
-```
-{ _id: ObjectID("606cbf193aaa317e81b97150"), name: "Jane Austen", favoriteBooks: [] }
-{ _id: ObjectID("606cbf3ac0680a044501108b"), name: "J.K. Rowling", favoriteBooks: [ObjectID("606cbeab251aa79ab35ffd05")] }
+```json
+[
+  {
+    "_id": ObjectID("606cbf193aaa317e81b97150"),
+    "name": "Jane Austen",
+    "favoriteBooks": []
+  },
+  {
+    "_id": ObjectID("606cbf3ac0680a044501108b"),
+    "name": "J.K. Rowling",
+    "favoriteBooks": [ObjectID("606cbeab251aa79ab35ffd05")]
+  }
+]
 ```
 
 ### **▶️ Nest related filter queries :**
 
 ```javascript
-await Book.findOne({
+await Book.find({
   author: {
     $in: {
       name: "J.K. Rowling"
@@ -83,10 +103,14 @@ await Book.findOne({
 });
 ```
 
-Result:
-
-```
-{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: ObjectID("606cbf3ac0680a044501108b") }
+```json
+[
+  {
+    "_id": ObjectID("606cbed349af304a1e828338"),
+    "title": "Harry Potter",
+    "author": ObjectID("606cbf3ac0680a044501108b")
+  }
+]
 ```
 
 ### **▶️ Populate and aggregate results with a simple yet expressive selection syntax :**
@@ -95,7 +119,7 @@ Result:
 await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
 ```
 
-```
+```json
 ["Emma"]
 ```
 
@@ -105,7 +129,7 @@ await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
 await Book.findOne({ title: "Harry Potter" }).select`author name`;
 ```
 
-```
+```json
 "J.K. Rowling"
 ```
 
@@ -115,8 +139,12 @@ await Book.findOne({ title: "Harry Potter" }).select`author name`;
 await Book.findOne({ title: "Harry Potter" }).select`{ *, author { name } }`;
 ```
 
-```
-{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: { name: "J.K. Rowling" } }
+```json
+{
+  "_id": ObjectID("606cbed349af304a1e828338"),
+  "title": "Harry Potter",
+  "author": { "name": "J.K. Rowling" }
+}
 ```
 
 ---
@@ -131,12 +159,24 @@ await Author.delete({ name: "Jane Austen" });
 
 The **Book** and **Author** collections then respectively contain :
 
-```
-{ _id: ObjectID("606cbed349af304a1e828338"), title: "Harry Potter", author: ObjectID("606cbf3ac0680a044501108b") }
+```json
+[
+  {
+    "_id": ObjectID("606cbed349af304a1e828338"),
+    "title": "Harry Potter",
+    "author": ObjectID("606cbf3ac0680a044501108b")
+  }
+]
 ```
 
-```
-{ _id: ObjectID("606cbf3ac0680a044501108b"), name: "J.K. Rowling", favoriteBooks: [] }
+```json
+[
+  {
+    "_id": ObjectID("606cbf3ac0680a044501108b"),
+    "name": "J.K. Rowling",
+    "favoriteBooks": []
+  }
+]
 ```
 
 > 📌 _By deleting the author "Jane Austen", her book "Emma" was deleted too, and so was its entry in J.K. Rowling's favorite book list._
