@@ -17,7 +17,10 @@
   - [Cascade-delete](#)
   - [Search document references](#)
   - [Scan the database](#)
+  - [Upcoming features](#)
 - [Selectors](#)
+  - [Overview](#)
+  - [Syntax](#)
 - [API](#)
 
 ---
