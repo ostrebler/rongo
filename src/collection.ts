@@ -73,7 +73,7 @@ export class Collection<T extends Document> {
 
   // Query methods :
 
-  resolve(
+  select(
     selector: string | Selector,
     selectable: Selectable<T>,
     options?: SelectionOption

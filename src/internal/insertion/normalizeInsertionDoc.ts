@@ -28,6 +28,6 @@ export function normalizeInsertionDoc<T extends Document>(
     // Insert the nested document :
     const nestedDoc = await insertNested(foreignCol, value, {}, dependencies);
     // And return it's primary key
-    return foreignCol.resolve(foreignCol.key, nestedDoc);
+    return foreignCol.select(foreignCol.key, nestedDoc);
   });
 }

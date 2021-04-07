@@ -95,7 +95,7 @@ export function selectablePromise<T extends Document, S extends Selectable<T>>(
         selector =
           arg === undefined ? select(chunks) : select(chunks, arg, ...args);
       return promise.then(selectable =>
-        collection.resolve(selector, selectable, options)
+        collection.select(selector, selectable, options)
       );
     }
   });

@@ -38,7 +38,7 @@ export async function insertNested<T extends Document>(
   }
   dependencies.add(
     collection,
-    await collection.resolve(collection.key, documents)
+    await collection.select(collection.key, documents)
   );
   if (!result.result.ok)
     throw new Error(
