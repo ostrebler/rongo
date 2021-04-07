@@ -2,9 +2,21 @@
 
 > What is Rongo ?
 
-- A Promise-based NodeJS driver for MongoDB.
-- A happy marriage between the relational and the NoSQL world.
-- An elegant way to avoid subdocument management hell without additional complexity.
+🔰️ A Promise-based NodeJS driver for MongoDB.\
+💍️ A happy marriage between the relational and the NoSQL world.\
+🏃 An elegant way to escape subdocument hell without additional complexity.
+
+---
+
+- [Overview](#overview)
+- [Get started](#)
+- [Features](#)
+  - [Basic operations](#)
+  - [Nested insertions](#)
+  - [Nested filter queries](#)
+  - [Cascade deletes](#)
+- [Selectors](#)
+- [API](#)
 
 ---
 
