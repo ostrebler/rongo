@@ -12,9 +12,11 @@
 - [Get started](#)
 - [Features](#)
   - [Basic operations](#)
-  - [Nested insertions](#)
-  - [Nested filter queries](#)
-  - [Cascade deletes](#)
+  - [Nest insertions](#)
+  - [Nest filter queries](#)
+  - [Cascade-delete](#)
+  - [Search document references](#)
+  - [Scan the database](#)
 - [Selectors](#)
 - [API](#)
 
@@ -193,11 +195,10 @@ The **Book** and **Author** collections then respectively contain :
 
 > 📌 _By deleting the author "Jane Austen", her book "Emma" was deleted too, and so was its entry in J.K. Rowling's favorite book list._
 
-## Other features
+### Things to keep in mind :
 
 - The augmentation of the insertion and filter syntax to include relational stuff is a superset of the original syntax. **Everything written using the conventional syntax will work with Rongo**.
 - You can opt-out the relational enhancements if you wish by playing with options, and just use Rongo as a regular MongoDB driver (like [mongoose](https://github.com/Automattic/mongoose), [monk](https://github.com/Automattic/monk), [mongoist](https://github.com/mongoist/mongoist), etc.). For example :
-
-```javascript
-await Author.delete({ name: "Jane Austen" }, { propagate: false });
-```
+  ```javascript
+  await Author.delete({ name: "Jane Austen" }, { propagate: false });
+  ```
