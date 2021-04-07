@@ -3,7 +3,6 @@
     "foreignKeys": {
       "users.$": {
         "collection": "User",
-        "onInsert": "VERIFY",
         "onDelete": "PULL"
       }
     }
@@ -12,22 +11,18 @@
     "foreignKeys": {
       "list": {
         "collection": "List",
-        "onInsert": "VERIFY",
         "onDelete": "DELETE"
       },
       "createdBy": {
         "collection": "User",
-        "onInsert": "VERIFY",
         "onDelete": "NULLIFY"
       },
       "edits.$.user": {
         "collection": "User",
-        "onInsert": "VERIFY",
         "onDelete": "UNSET"
       },
       "assignedTo.$.user": {
         "collection": "User",
-        "onInsert": "VERIFY",
         "onDelete": "PULL"
       }
     }
