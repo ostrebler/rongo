@@ -3,7 +3,7 @@ import {
   FieldSelector,
   FilterQuerySelector,
   FilterSelector,
-  FlatMapSelector,
+  HardMapSelector,
   IdentitySelector,
   IndexSelector,
   MapSelector,
@@ -23,7 +23,7 @@ import {
 // | <index> selector                                { IndexSelector(index, selector) }
 // | <>> selector                                    { ShortcutSelector(selector) }
 // | <$> selector                                    { MapSelector(selector) }
-// | <$$> selector                                   { FlatMapSelector(selector) }
+// | <$$> selector                                   { HardMapSelector(selector) }
 // | <arg as selector>                               { arg }
 // | <arg as function> selector                      { FilterSelector(arg, selector) }
 // | <arg as function> <?> selector (<:> selector)?  { SwitchSelector(arg, selector, selector) }
@@ -81,8 +81,8 @@ export function parseSelector(raw: string, symTable: SymTable = new Map()) {
     // If we have a shortcut selector :
     if (match(">")) return new ShortcutSelector(expr(index));
 
-    // If we have a flat-map or map selector :
-    if (match("$$")) return new FlatMapSelector(expr(index));
+    // If we have a hard-map or map selector :
+    if (match("$$")) return new HardMapSelector(expr(index));
     if (match("$")) return new MapSelector(expr(index));
 
     // If we see a symbol, then it's either...

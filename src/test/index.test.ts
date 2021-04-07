@@ -3,7 +3,7 @@ import {
   FieldSelector,
   FilterQuerySelector,
   FilterSelector,
-  FlatMapSelector,
+  HardMapSelector,
   IdentitySelector,
   IndexSelector,
   MapSelector,
@@ -128,7 +128,7 @@ it("correctly parses resolves", async () => {
   const s12Like = new FieldSelector(
     "a",
     new MapSelector(
-      new FieldSelector("b", new FlatMapSelector(new FieldSelector("c", id)))
+      new FieldSelector("b", new HardMapSelector(new FieldSelector("c", id)))
     )
   );
   expect(s12).toEqual(s12Like);
@@ -205,7 +205,7 @@ it("correctly parses resolves", async () => {
                 ])
               )
             ],
-            ["things", new FlatMapSelector(new FieldSelector("_id", id))],
+            ["things", new HardMapSelector(new FieldSelector("_id", id))],
             [
               "tools",
               new FilterSelector(

@@ -18,7 +18,7 @@ import {
 // | <index> selector                                { IndexSelector(index, selector) }
 // | <>> selector                                    { ShortcutSelector(selector) }
 // | <$> selector                                    { MapSelector(selector) }
-// | <$$> selector                                   { FlatMapSelector(selector) }
+// | <$$> selector                                   { HardMapSelector(selector) }
 // | <arg as selector>                               { arg }
 // | <arg as function> selector                      { FilterSelector(arg, selector) }
 // | <arg as function> <?> selector (<:> selector)?  { SwitchSelector(arg, selector, selector) }
@@ -168,7 +168,7 @@ export class ShortcutSelector extends Selector {
   }
 }
 
-// The MapSelector maps items in the current array through the subselector
+// The MapSelector flat-maps items in the current array through the subselector
 
 export class MapSelector extends Selector {
   private readonly selector: Selector;
@@ -187,18 +187,20 @@ export class MapSelector extends Selector {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value)) throw new Error("Can't map ($) a non-array value");
-    // Map the items to subselections :
-    return Promise.all(
-      value.map((item, index) =>
-        this.selector.resolve(item, collection, [...stack, index], options)
+    // Flat-map the items to subselections :
+    return flatten(
+      await Promise.all(
+        value.map((item, index) =>
+          this.selector.resolve(item, collection, [...stack, index], options)
+        )
       )
     );
   }
 }
 
-// The MapSelector maps items in the current array through the subselector and flattens the result
+// The HardMapSelector maps items in the current array through the subselector without flattening the result
 
-export class FlatMapSelector extends Selector {
+export class HardMapSelector extends Selector {
   private readonly selector: Selector;
 
   constructor(selector: Selector) {
@@ -215,13 +217,11 @@ export class FlatMapSelector extends Selector {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
     if (!isArray(value))
-      throw new Error("Can't flat-map ($$) a non-array value");
-    // Flat-map the items to subselections :
-    return flatten(
-      await Promise.all(
-        value.map((item, index) =>
-          this.selector.resolve(item, collection, [...stack, index], options)
-        )
+      throw new Error("Can't hard-map ($$) a non-array value");
+    // Map the items to subselections :
+    return Promise.all(
+      value.map((item, index) =>
+        this.selector.resolve(item, collection, [...stack, index], options)
       )
     );
   }

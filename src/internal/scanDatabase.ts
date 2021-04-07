@@ -54,7 +54,7 @@ export async function scanDatabase(
       )) {
         // Get all values for that foreign key in the current batch :
         /*let keys: Array<any> = await collection.resolve(
-          new FlatMapSelector(foreignKeyConfig.selector),
+          foreignKeyConfig.selector,
           documents
         );*/
         let keys: Array<any> = [];
