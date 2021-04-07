@@ -19,7 +19,7 @@
   - [Scan the database](#)
   - [Upcoming features](#)
 - [Selectors](#)
-  - [Overview](#)
+  - [Understanding selectors](#)
   - [Syntax](#)
 - [API](#)
 
