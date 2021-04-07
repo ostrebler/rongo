@@ -36,6 +36,7 @@ export async function findReferences(
           }
         )
         .select(options?.keysOnly ? refCol.key : new IdentitySelector());
+      // Store the results is there are :
       if (!isEmpty(result)) mergeReference(colName, foreignKey, result);
     }
   }
