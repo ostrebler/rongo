@@ -5,12 +5,11 @@ import {
   OptionalId,
   WithId
 } from "mongodb";
-import { entries, isArray, isPlainObject, last } from "lodash";
+import { entries, isArray, isPlainObject } from "lodash";
 import {
   Collection,
   Document,
   InsertionDoc,
-  InsertPolicy,
   mapDeep,
   Rongo,
   stackToKey
@@ -26,6 +25,7 @@ export async function insertNested<T extends Document>(
 ) {
   const col = await collection.handle;
   const normalized = await normalizeInsertionDoc(collection, doc, dependencies);
+  // TODO: Add verification step
   let result:
     | InsertOneWriteOpResult<WithId<T>>
     | InsertWriteOpResult<WithId<T>>;
@@ -56,85 +56,18 @@ export function normalizeInsertionDoc<T extends Document>(
   dependencies: DependencyCollector
 ): Promise<OptionalId<T> | Array<OptionalId<T>>> {
   return mapDeep(doc, async (value, stack) => {
-    const key = stackToKey(stack);
+    if (!isPlainObject(value)) return;
     // Get the foreign key config :
+    const key = stackToKey(stack);
     const foreignKeyConfig = collection.foreignKeys[key];
     // If we're not visiting a foreign key location, finish there :
     if (!foreignKeyConfig) return;
     // Get the foreign collection :
     const foreignCol = collection.rongo.collection(foreignKeyConfig.collection);
-
-    // If the foreign key is undefined, check for optionality :
-    if (value === undefined) {
-      if (!foreignKeyConfig.optional)
-        throw new Error(
-          `Non-optional foreign key <${key}> in collection <${collection.name}> can't be undefined in insertion document`
-        );
-    }
-
-    // If the foreign key is null, check for nullability :
-    else if (value === null) {
-      if (!foreignKeyConfig.nullable)
-        throw new Error(
-          `Non-nullable foreign key <${key}> in collection <${collection.name}> can't be null in insertion document`
-        );
-    }
-
-    // If the foreign key is not an array of keys :
-    else if (!isArray(value)) {
-      // It has to be defined as a non-array foreign key :
-      if (last(foreignKeyConfig.path) === "$")
-        throw new Error(
-          `Non-array values can't be assigned to array foreign key <${key}> in collection <${collection.name}>`
-        );
-      // Keys can't be plain objects, so if that's the case, it's a foreign insertion document :
-      if (isPlainObject(value)) {
-        const doc = await insertNested(foreignCol, value, {}, dependencies);
-        value = await foreignCol.resolve(foreignCol.key, doc);
-      }
-      // If verification is on, check if "value" points to a valid foreign document :
-      if (foreignKeyConfig.onInsert === InsertPolicy.Verify)
-        if (
-          !(await foreignCol.has(
-            { [foreignCol.key]: value },
-            { baseQuery: true }
-          ))
-        )
-          throw new Error(
-            `Invalid foreign key <${key}> in insertion document for collection <${collection.name}> : no document with primary key <${value}> in collection<${foreignCol.name}>`
-          );
-    }
-
-    // If the foreign key is an array of keys :
-    else {
-      // It has to be defined as an array foreign key :
-      if (last(foreignKeyConfig.path) !== "$")
-        throw new Error(
-          `Non-array value can't be assigned to array foreign key <${key}> in collection <${collection.name}>`
-        );
-      // We map the array and replace foreign insertion documents with their actual primary key after insertion :
-      value = await Promise.all(
-        value.map(async item => {
-          if (!isPlainObject(item)) return item;
-          const doc = await insertNested(foreignCol, item, {}, dependencies);
-          return foreignCol.resolve(foreignCol.key, doc);
-        })
-      );
-      // If verification is on, check if every foreign key points to an actual foreign document :
-      if (foreignKeyConfig.onInsert === InsertPolicy.Verify) {
-        const count = await foreignCol.count(
-          { [foreignCol.key]: { $in: value } },
-          { baseQuery: true }
-        );
-        if (value.length !== count)
-          throw new Error(
-            `Invalid foreign key <${key}> in insertion document for collection <${collection.name}> : some keys don't refer to actual documents in collection <${foreignCol.name}>`
-          );
-      }
-    }
-
-    // Return final ready foreign key(s) :
-    return value;
+    // Insert the nested document :
+    const nestedDoc = await insertNested(foreignCol, value, {}, dependencies);
+    // And return it's primary key
+    return foreignCol.resolve(foreignCol.key, nestedDoc);
   });
 }
 
