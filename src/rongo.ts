@@ -15,6 +15,7 @@ import {
   buildGraph,
   Collection,
   Document,
+  findDanglingKeys,
   Graph,
   loadSchema,
   ObjectId,
@@ -74,9 +75,8 @@ export class Rongo {
     return db.addUser(username, password, options);
   }
 
-  scan(options?: { batchSize?: number; limit?: number }) {
-    throw new Error("Scanning is not implemented yet");
-    // return scanDatabase(this, options);
+  findDanglingKeys(options?: { batchSize?: number; limit?: number }) {
+    return findDanglingKeys(this, options);
   }
 
   collection<T extends Document>(name: string, options?: DbCollectionOptions) {

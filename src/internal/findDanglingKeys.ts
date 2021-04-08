@@ -1,39 +1,25 @@
-import {
-  assignWith,
-  differenceWith,
-  entries,
-  isEmpty,
-  min,
-  uniqBy
-} from "lodash";
-import { InvalidKeys, Rongo, ScanReport } from "../.";
+import { differenceWith, entries, isEmpty, min, uniqBy } from "lodash";
+import { DanglingKeys, Rongo } from "../.";
 
-// This function is used to find and collect all invalid keys in the database, revealing integrity problems
+// This function is used to find and collect all dangling keys in the database, revealing integrity problems
 
-export async function scanDatabase(
+export async function findDanglingKeys(
   rongo: Rongo,
   options?: { batchSize?: number; limit?: number }
 ) {
-  const report: ScanReport = Object.create(null);
+  const danglingKeys: DanglingKeys = Object.create(null);
   const batchSize = options?.batchSize ?? 100;
 
   // The following function is used to signal a new irregularity in the final report :
-  const mergeReport = (
+  const mergeDanglingKeys = (
     colName: string,
     foreignKey: string,
-    invalidKeys: Partial<InvalidKeys>
+    keys: Array<any>
   ) => {
-    if (!(colName in report)) report[colName] = Object.create(null);
-    const foreignKeys = report[colName];
-    if (!(foreignKey in foreignKeys))
-      foreignKeys[foreignKey] = {
-        invalidNull: false,
-        invalidUnset: false,
-        danglingKeys: []
-      };
-    assignWith(foreignKeys[foreignKey], invalidKeys, (k1, k2, prop) =>
-      prop === "danglingKeys" ? [...k1, ...k2] : undefined
-    );
+    if (!(colName in danglingKeys)) danglingKeys[colName] = Object.create(null);
+    const foreignKeys = danglingKeys[colName];
+    if (!(foreignKey in foreignKeys)) foreignKeys[foreignKey] = [];
+    foreignKeys[foreignKey].push(...keys);
   };
 
   // For each collection in the database :
@@ -53,17 +39,7 @@ export async function scanDatabase(
         config.foreignKeys
       )) {
         // Get all values for that foreign key in the current batch :
-        /*let keys: Array<any> = await collection.resolve(
-          foreignKeyConfig.selector,
-          documents
-        );*/
-        let keys: Array<any> = [];
-
-        // If there is an unexpected nullish value, signal it :
-        if (!foreignKeyConfig.optional && keys.includes(undefined))
-          mergeReport(colName, foreignKey, { invalidUnset: true });
-        if (!foreignKeyConfig.nullable && keys.includes(null))
-          mergeReport(colName, foreignKey, { invalidNull: true });
+        let keys: Array<any> = await collection.select(foreignKey, documents);
 
         // Remove nullish and repeated values :
         keys = uniqBy(
@@ -87,10 +63,10 @@ export async function scanDatabase(
           (k1, k2) => k1.toString() === k2.toString()
         );
         if (!isEmpty(danglingKeys))
-          mergeReport(colName, foreignKey, { danglingKeys });
+          mergeDanglingKeys(colName, foreignKey, danglingKeys);
       }
     }
   }
 
-  return report;
+  return danglingKeys;
 }

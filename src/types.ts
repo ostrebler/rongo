@@ -22,8 +22,6 @@ export type CollectionConfig = {
 export type ForeignKeyConfig = {
   path: Path;
   collection: string;
-  optional: boolean;
-  nullable: boolean;
   onInsert: InsertPolicy;
   onDelete: DeletePolicy;
 };
@@ -36,8 +34,6 @@ export type Schema = {
     foreignKeys?: {
       [foreignKeyPath: string]: {
         collection?: string;
-        optional?: boolean;
-        nullable?: boolean;
         onInsert?: InsertPolicy;
         onDelete?: DeletePolicy;
       };
@@ -58,25 +54,17 @@ export enum DeletePolicy {
   Bypass = "BYPASS",
   Reject = "REJECT", // *
   Delete = "DELETE", // *
-  Unset = "UNSET", // * (and "optional" must be true)
-  Nullify = "NULLIFY", // * (and "nullable" must be true)
+  Unset = "UNSET", // *
+  Nullify = "NULLIFY", // *
   Pull = "PULL" // x.**.$.**
 }
 
-// Use as database scan result object :
+// Used as database scan result object :
 
-export type ScanReport = {
+export type DanglingKeys = {
   [collection: string]: {
-    [foreignKey: string]: InvalidKeys;
+    [foreignKey: string]: Array<any>;
   };
-};
-
-// Used by scan reports :
-
-export type InvalidKeys = {
-  invalidNull: boolean;
-  invalidUnset: boolean;
-  danglingKeys: Array<any>;
 };
 
 // The general type constraint for documents

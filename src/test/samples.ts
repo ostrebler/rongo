@@ -69,8 +69,6 @@ export const graph: Graph = {
       users: {
         path: ["users", "$"],
         collection: "User",
-        optional: false,
-        nullable: false,
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Pull
       }
@@ -80,8 +78,6 @@ export const graph: Graph = {
         list: {
           path: ["list"],
           collection: "List",
-          optional: false,
-          nullable: false,
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Delete
         }
@@ -96,8 +92,6 @@ export const graph: Graph = {
         users: {
           path: ["users", "$"],
           collection: "User",
-          optional: false,
-          nullable: false,
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Pull
         }
@@ -106,24 +100,18 @@ export const graph: Graph = {
         createdBy: {
           path: ["createdBy"],
           collection: "User",
-          optional: false,
-          nullable: true,
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Nullify
         },
         "edits.user": {
           path: ["edits", "$", "user"],
           collection: "User",
-          optional: true,
-          nullable: false,
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Unset
         },
         "assignedTo.user": {
           path: ["assignedTo", "$", "user"],
           collection: "User",
-          optional: false,
-          nullable: false,
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Pull
         }
@@ -136,32 +124,24 @@ export const graph: Graph = {
       list: {
         path: ["list"],
         collection: "List",
-        optional: false,
-        nullable: false,
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Delete
       },
       createdBy: {
         path: ["createdBy"],
         collection: "User",
-        optional: false,
-        nullable: true,
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Nullify
       },
       "edits.user": {
         path: ["edits", "$", "user"],
         collection: "User",
-        optional: true,
-        nullable: false,
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Unset
       },
       "assignedTo.user": {
         path: ["assignedTo", "$", "user"],
         collection: "User",
-        optional: false,
-        nullable: false,
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Pull
       }
