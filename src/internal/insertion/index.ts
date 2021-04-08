@@ -1,3 +1,3 @@
-export * from "./insertNested";
+export * from "./insertSafely";
 export * from "./normalizeInsertionDoc";
 export * from "./verifyInsertionDoc";

@@ -29,7 +29,7 @@ import {
   FilterQuery,
   findReferences,
   InsertionDoc,
-  insertNested,
+  insertSafely,
   normalizeFilterQuery,
   normalizeInsertionDoc,
   parseSelector,
@@ -207,7 +207,7 @@ export class Collection<T extends Document> {
     return selectablePromise(this, async () => {
       const dependencies = new DependencyCollector(this.rongo);
       try {
-        return insertNested(this, doc, dependencies, options);
+        return insertSafely(this, doc, dependencies, options);
       } catch (e) {
         await dependencies.delete();
         throw e;

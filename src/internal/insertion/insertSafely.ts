@@ -14,9 +14,9 @@ import {
   verifyInsertionDoc
 } from "../../.";
 
-// This function is used to perform nested inserts :
+// This function is used to perform nested inserts in a safe way :
 
-export async function insertNested<T extends Document>(
+export async function insertSafely<T extends Document>(
   collection: Collection<T>,
   doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
   dependencies: DependencyCollector,

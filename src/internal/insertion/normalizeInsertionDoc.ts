@@ -5,7 +5,7 @@ import {
   DependencyCollector,
   Document,
   InsertionDoc,
-  insertNested,
+  insertSafely,
   mapDeep,
   stackToKey
 } from "../../.";
@@ -28,7 +28,7 @@ export async function normalizeInsertionDoc<T extends Document>(
     // Get the foreign collection :
     const foreignCol = collection.rongo.collection(foreignKeyConfig.collection);
     // Insert the nested document :
-    const nestedDoc = await insertNested(
+    const nestedDoc = await insertSafely(
       foreignCol,
       value,
       dependencies,
