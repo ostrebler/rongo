@@ -39,17 +39,11 @@ export function buildGraph(schema: unknown) {
       const foreignKeyConfig: ForeignKeyConfig = {
         path,
         collection: pathConfig.collection ?? collection,
-        optional: pathConfig.optional ?? false,
-        nullable: pathConfig.nullable ?? false,
         onInsert: pathConfig.onInsert ?? InsertPolicy.Verify,
         onDelete: pathConfig.onDelete ?? DeletePolicy.Bypass
       };
 
       // Check for config coherence
-      if (foreignKeyConfig.onDelete === DeletePolicy.Unset)
-        foreignKeyConfig.optional = true;
-      if (foreignKeyConfig.onDelete === DeletePolicy.Nullify)
-        foreignKeyConfig.nullable = true;
       if (foreignKeyConfig.onDelete === DeletePolicy.Pull) {
         if (!path.includes("$"))
           throw new Error(
@@ -100,12 +94,6 @@ const isSchema = new Ajv().compile<Schema>({
                 collection: {
                   type: "string",
                   pattern: `^${id}$`
-                },
-                optional: {
-                  type: "boolean"
-                },
-                nullable: {
-                  type: "boolean"
                 },
                 onInsert: {
                   enum: values(InsertPolicy)
