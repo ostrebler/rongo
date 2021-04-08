@@ -201,7 +201,7 @@ The **Book** and **Author** collections then respectively contain :
 ### Things to keep in mind :
 
 - The augmentation of the insertion and filter syntax to include relational stuff is a superset of the original syntax. **Everything written using the conventional syntax will work with Rongo**, unless you explicitly specify otherwise in your Rongo schema.
-- You can opt-out the relational enhancements if you wish by playing with options, and just use Rongo as a regular MongoDB driver (like [mongoose](https://github.com/Automattic/mongoose), [monk](https://github.com/Automattic/monk), [mongoist](https://github.com/mongoist/mongoist), etc.). For example :
+- You can opt-out the relational functionalities if you wish by playing with options, and just use Rongo as a regular MongoDB driver (like [mongoose](https://github.com/Automattic/mongoose), [monk](https://github.com/Automattic/monk), [mongoist](https://github.com/mongoist/mongoist), etc.). For example :
   ```javascript
   await Author.delete({ name: "Jane Austen" }, { propagate: false });
   ```

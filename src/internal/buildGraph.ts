@@ -47,7 +47,7 @@ export function buildGraph(schema: unknown) {
       if (foreignKeyConfig.onDelete === DeletePolicy.Pull) {
         if (!path.includes("$"))
           throw new Error(
-            `Foreign key <${foreignKey}> in collection <${collection}> can't implement the Pull or NullifyIn remove policy`
+            `Foreign key <${foreignKey}> in collection <${collection}> can't implement the "Pull" remove policy`
           );
       }
 
