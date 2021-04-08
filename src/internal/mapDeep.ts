@@ -25,9 +25,9 @@ export async function mapDeep(
     return fromPairs(
       await Promise.all(
         entries(value).map(
-          async ([key, element]): Promise<[string, any]> => [
+          async ([key, val]): Promise<[string, any]> => [
             key,
-            await mapDeep(element, customizer, [...stack, key], value)
+            await mapDeep(val, customizer, [...stack, key], value)
           ]
         )
       )
