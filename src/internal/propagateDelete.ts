@@ -9,6 +9,8 @@ import {
   RemoveScheduler
 } from "../.";
 
+// This function propagates delete instruction to foreign collections
+
 export async function propagateDelete<T extends Document>(
   collection: Collection<T>,
   query: FilterQueryBase<T>,
@@ -180,14 +182,14 @@ function toSetUpdater(path: Path) {
 /* This function transforms a key path to a valid [$pull-like update query target, element filter] pair
  *
  * a           => NEVER
- * a.$         => a              |
+ * a.$         => a              | null
  * a.b         => NEVER
  * a.b.c       => NEVER
  * a.$.b       => a              | b
- * a.$.b.$     => a.$[].b        |
+ * a.$.b.$     => a.$[].b        | null
  * a.$.b.c     => a              | b.c
  * a.$.b.$.c   => a.$[].b        | c
- * a.$.b.$.c.$ => a.$[].b.$[].c  |
+ * a.$.b.$.c.$ => a.$[].b.$[].c  | null
  * */
 
 function toPullUpdater(path: Path) {
