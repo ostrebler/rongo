@@ -164,8 +164,6 @@ await Book.findOne({ title: "Harry Potter" }).select`{ *, author { name } }`;
 }
 ```
 
----
-
 > 📌 _Selectors are a powerful concept which allows you to do **really** a lot of useful things. More about them in the [Selector](#selectors) section._
 
 ### **▶️ Cascade-delete related documents :**
