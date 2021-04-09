@@ -26,20 +26,15 @@ export async function verifyInsertionDoc<T extends Document>(
 
     // Check the validity of the foreign key(s) :
     if (!isArray(value)) {
-      if (await foreignCol.hasKey(value))
+      if (!(await foreignCol.hasKey(value)))
         return fail(
-          `<${value}> isn't refering to an existing document in collection <${foreignCol.name}>`
+          `key <${value}> isn't refering to an existing document in collection <${foreignCol.name}>`
         );
     } else {
-      const nonNullValues = value.filter(item => item !== null);
-      const difference =
-        nonNullValues.length -
-        (await foreignCol.count({
-          [foreignCol.key]: { $in: nonNullValues }
-        }));
-      if (difference)
+      const nonNull = value.filter(item => item !== null);
+      if (!(await foreignCol.hasAllKeys(nonNull)))
         return fail(
-          `${difference} items aren't refering to existing documents in collection <${foreignCol.name}>`
+          `some keys aren't refering to existing documents in collection <${foreignCol.name}>`
         );
     }
     return value;
