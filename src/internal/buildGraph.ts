@@ -44,12 +44,13 @@ export function buildGraph(schema: unknown) {
       };
 
       // Check for config coherence
-      if (foreignKeyConfig.onDelete === DeletePolicy.Pull) {
-        if (!path.includes("$"))
-          throw new Error(
-            `Foreign key <${foreignKey}> in collection <${collection}> can't implement the "Pull" remove policy`
-          );
-      }
+      if (
+        foreignKeyConfig.onDelete === DeletePolicy.Pull &&
+        !path.includes("$")
+      )
+        throw new Error(
+          `Foreign key <${foreignKey}> in collection <${collection}> can't implement the "Pull" remove policy`
+        );
 
       // Add the foreign key config to the current collection's config
       config.foreignKeys[foreignKey] = foreignKeyConfig;
