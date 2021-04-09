@@ -150,24 +150,23 @@ async function getKeys<T extends Document>(
 
 /* This function transforms a key path to a valid [$set-like update query target, array filter] pair
  *
- * a           => a              | null
- * a.$         => a              | null
- * a.b         => a.b            | null
- * a.b.c       => a.b.c          | null
- * a.$.b       => a.$[f].b       | f.b
- * a.$.b.$     => a.$[f].b       | f.b
- * a.$.b.c     => a.$[f].b.c     | f.b.c
- * a.$.b.$.c   => a.$[].b.$[f].c | f.c
- * a.$.b.$.c.$ => a.$[].b.$[f].c | f.c
+ * a           => a                  | null
+ * a.$         => a.$[f]             | f
+ * a.b         => a.b                | null
+ * a.b.c       => a.b.c              | null
+ * a.$.b       => a.$[f].b           | f.b
+ * a.$.b.$     => a.$[].b.$[f]       | f
+ * a.$.b.c     => a.$[f].b.c         | f.b.c
+ * a.$.b.$.c   => a.$[].b.$[f].c     | f.c
+ * a.$.b.$.c.$ => a.$[].b.$[].c.$[f] | f
  * */
 
 function toSetUpdater(path: Path) {
   const [target, filter] = [...path]
     .reverse()
     .reduce<[Array<string>, Array<string> | null]>(
-      ([acc, filter], route, index) => {
+      ([acc, filter], route) => {
         if (route !== "$") return [[route, ...acc], filter];
-        if (index === 0) return [acc, filter];
         if (filter) return [["$[]", ...acc], filter];
         return [
           ["$[f]", ...acc],
