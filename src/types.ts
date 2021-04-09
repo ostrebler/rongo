@@ -77,13 +77,14 @@ export type Path = Array<string>;
 
 // Used by collection select ops to type-check selectable resource
 
+export type SelectableUnit<T extends Document> = T | WithId<T>;
+
 export type Selectable<T extends Document> =
   | null
   | undefined
-  | T
-  | WithId<T>
-  | Array<T>
-  | Array<WithId<T>>;
+  | SelectableUnit<T>
+  | Partial<SelectableUnit<T>>
+  | Array<SelectableUnit<T>>;
 
 // Used by collection to add selection to promises
 
