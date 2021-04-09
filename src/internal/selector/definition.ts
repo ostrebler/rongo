@@ -1,4 +1,4 @@
-import { flatten, isArray, isPlainObject, keys } from "lodash";
+import { flatten, isArray, isEmpty, isPlainObject, keys } from "lodash";
 import {
   asyncFilter,
   Collection,
@@ -35,6 +35,8 @@ import {
 // The Selector base class defines the abstract signature of a selector
 
 export abstract class Selector {
+  abstract fields(collection: Collection<any>, stack: Stack): Array<string>;
+
   abstract resolve(
     value: any,
     collection: Collection<any>,
@@ -46,6 +48,10 @@ export abstract class Selector {
 // The IdentitySelector represents the "empty selector", it returns the value it was passed, unchanged
 
 export class IdentitySelector extends Selector {
+  fields() {
+    return [];
+  }
+
   async resolve(value: any) {
     return value instanceof LazyDocuments ? value.fetch() : value;
   }
@@ -61,6 +67,14 @@ export class FieldSelector extends Selector {
     super();
     this.field = field;
     this.selector = selector;
+  }
+
+  fields(collection: Collection<any>, stack: Stack) {
+    stack = [...stack, this.field];
+    if (stackToKey(stack) in collection.foreignKeys) return [this.field];
+    const projection = this.selector.fields(collection, stack);
+    if (isEmpty(projection)) return [this.field];
+    return projection.map(key => `${this.field}.${key}`);
   }
 
   async resolve(
@@ -119,6 +133,10 @@ export class IndexSelector extends Selector {
     this.selector = selector;
   }
 
+  fields(collection: Collection<any>, stack: Stack) {
+    return this.selector.fields(collection, [...stack, this.index]);
+  }
+
   async resolve(
     value: any,
     collection: Collection<any>,
@@ -150,6 +168,10 @@ export class ShortcutSelector extends Selector {
     this.selector = selector;
   }
 
+  fields(collection: Collection<any>, stack: Stack) {
+    return this.selector.fields(collection, stack);
+  }
+
   async resolve(
     value: any,
     collection: Collection<any>,
@@ -169,6 +191,10 @@ export class MapSelector extends Selector {
   constructor(selector: Selector) {
     super();
     this.selector = selector;
+  }
+
+  fields(collection: Collection<any>, stack: Stack) {
+    return this.selector.fields(collection, [...stack, "$"]);
   }
 
   async resolve(
@@ -201,6 +227,10 @@ export class HardMapSelector extends Selector {
     this.selector = selector;
   }
 
+  fields(collection: Collection<any>, stack: Stack) {
+    return this.selector.fields(collection, [...stack, "$$"]);
+  }
+
   async resolve(
     value: any,
     collection: Collection<any>,
@@ -230,6 +260,10 @@ export class FilterSelector extends Selector {
     super();
     this.predicate = predicate;
     this.selector = selector;
+  }
+
+  fields(collection: Collection<any>, stack: Stack) {
+    return this.selector.fields(collection, stack);
   }
 
   async resolve(
@@ -270,6 +304,13 @@ export class SwitchSelector extends Selector {
     this.elseSelector = elseSelector;
   }
 
+  fields(collection: Collection<any>, stack: Stack) {
+    return [
+      ...this.ifSelector.fields(collection, stack),
+      ...this.elseSelector.fields(collection, stack)
+    ];
+  }
+
   async resolve(
     value: any,
     collection: Collection<any>,
@@ -298,6 +339,10 @@ export class FilterQuerySelector extends Selector {
     super();
     this.query = query;
     this.selector = selector;
+  }
+
+  fields(collection: Collection<any>, stack: Stack) {
+    return this.selector.fields(collection, stack);
   }
 
   async resolve(
@@ -330,6 +375,12 @@ export class TupleSelector extends Selector {
     this.selectors = selectors;
   }
 
+  fields(collection: Collection<any>, stack: Stack) {
+    return ([] as Array<string>).concat(
+      ...this.selectors.map(selector => selector.fields(collection, stack))
+    );
+  }
+
   async resolve(
     value: any,
     collection: Collection<any>,
@@ -352,6 +403,15 @@ export class ObjectSelector extends Selector {
   constructor(selectors: Map<string, Selector>) {
     super();
     this.selectors = selectors;
+  }
+
+  fields(collection: Collection<any>, stack: Stack) {
+    if (this.selectors.has("*")) return [];
+    return ([] as Array<string>).concat(
+      ...[...this.selectors].map(([field, selector]) =>
+        new FieldSelector(field, selector).fields(collection, stack)
+      )
+    );
   }
 
   async resolve(
