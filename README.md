@@ -198,6 +198,10 @@ The **Book** and **Author** collections then respectively contain :
 
 > 📌 _By deleting the author "Jane Austen", her book "Emma" was deleted too, and so was its entry in J.K. Rowling's favorite book list._
 
+### **▶️ And much more !**
+
+Quickly find foreign references to a given document, scan the database to look for dangling foreign keys, etc. The list keeps going on.
+
 ### Things to keep in mind :
 
 - The augmentation of the insertion and filter syntax to include relational stuff is a superset of the original syntax. **Everything written using the conventional syntax will work with Rongo**, unless you explicitly specify otherwise in your Rongo schema.
