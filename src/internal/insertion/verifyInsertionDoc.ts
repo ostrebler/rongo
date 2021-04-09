@@ -1,6 +1,12 @@
 import { OptionalId } from "mongodb";
 import { isArray } from "lodash";
-import { Collection, Document, mapDeep, stackToKey } from "../../.";
+import {
+  Collection,
+  Document,
+  InsertPolicy,
+  mapDeep,
+  stackToKey
+} from "../../.";
 
 // This function verifies the validity of an insertion doc by looking for dangling keys :
 
@@ -13,8 +19,9 @@ export async function verifyInsertionDoc<T extends Document>(
     // Get the foreign key config :
     const key = stackToKey(stack);
     const foreignKeyConfig = collection.foreignKeys[key];
-    // If we're not visiting a foreign key location, finish there :
-    if (!foreignKeyConfig) return;
+    // If we're not visiting a foreign key location, or if we shouldn't do verification, finish there :
+    if (!foreignKeyConfig || foreignKeyConfig.onInsert !== InsertPolicy.Verify)
+      return;
     // Get the foreign collection :
     const foreignCol = collection.rongo.collection(foreignKeyConfig.collection);
 
