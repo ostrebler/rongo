@@ -7,145 +7,66 @@ rongo.schema("./src/test/schema.test.json");
 
 // Some types for TS testing
 
-export type UserDb = {
+export type AuthorDb = {
   _id: ObjectId;
   name: string;
-  age: number;
+  favoriteBooks: Array<ObjectId>;
 };
 
-export type ListDb = {
+export type BookDb = {
   _id: ObjectId;
   title: string;
-  users: Array<ObjectId>;
-};
-
-export type TaskDb = {
-  _id: ObjectId;
-  label: string;
-  list: ObjectId;
-  createdBy: ObjectId;
-  edits: Array<{
-    user: ObjectId;
-    date: string;
-  }>;
-  assignedTo: Array<{
-    user: ObjectId;
-    priority: number;
-  }>;
+  author: ObjectId;
 };
 
 // Some test collections :
 
-export const User = rongo.collection<UserDb>("User");
-export const List = rongo.collection<ListDb>("List");
-export const Task = rongo.collection<TaskDb>("Task");
-
-// Populate the test collections with example :
-
-export async function populateTest() {
-  await rongo.drop();
-  const [bob, freddy, hans] = await User.insert([
-    {
-      name: "Bob",
-      age: 46
-    },
-    {
-      name: "Freddy",
-      age: 54
-    },
-    {
-      name: "Hans",
-      age: 27
-    }
-  ]);
-}
+export const Author = rongo.collection<AuthorDb>("Author");
+export const Book = rongo.collection<BookDb>("Book");
 
 // The full graph that should be calculated for the test database :
 
 export const graph: Graph = {
-  List: {
+  Author: {
     key: "_id",
     foreignKeys: {
-      users: {
-        path: ["users", "$"],
-        collection: "User",
+      favoriteBooks: {
+        path: ["favoriteBooks", "$"],
+        collection: "Book",
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Pull
       }
     },
     references: {
-      Task: {
-        list: {
-          path: ["list"],
-          collection: "List",
+      Book: {
+        author: {
+          path: ["author"],
+          collection: "Author",
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Delete
         }
       }
     }
   },
-  User: {
+  Book: {
     key: "_id",
-    foreignKeys: {},
+    foreignKeys: {
+      author: {
+        path: ["author"],
+        collection: "Author",
+        onInsert: InsertPolicy.Verify,
+        onDelete: DeletePolicy.Delete
+      }
+    },
     references: {
-      List: {
-        users: {
-          path: ["users", "$"],
-          collection: "User",
-          onInsert: InsertPolicy.Verify,
-          onDelete: DeletePolicy.Pull
-        }
-      },
-      Task: {
-        createdBy: {
-          path: ["createdBy"],
-          collection: "User",
-          onInsert: InsertPolicy.Verify,
-          onDelete: DeletePolicy.Nullify
-        },
-        "edits.user": {
-          path: ["edits", "$", "user"],
-          collection: "User",
-          onInsert: InsertPolicy.Verify,
-          onDelete: DeletePolicy.Unset
-        },
-        "assignedTo.user": {
-          path: ["assignedTo", "$", "user"],
-          collection: "User",
+      Author: {
+        favoriteBooks: {
+          path: ["favoriteBooks", "$"],
+          collection: "Book",
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Pull
         }
       }
     }
-  },
-  Task: {
-    key: "_id",
-    foreignKeys: {
-      list: {
-        path: ["list"],
-        collection: "List",
-        onInsert: InsertPolicy.Verify,
-        onDelete: DeletePolicy.Delete
-      },
-      createdBy: {
-        path: ["createdBy"],
-        collection: "User",
-        onInsert: InsertPolicy.Verify,
-        onDelete: DeletePolicy.Nullify
-      },
-      "edits.user": {
-        path: ["edits", "$", "user"],
-        collection: "User",
-        onInsert: InsertPolicy.Verify,
-        onDelete: DeletePolicy.Unset
-      },
-      "assignedTo.user": {
-        path: ["assignedTo", "$", "user"],
-        collection: "User",
-        onInsert: InsertPolicy.Verify,
-        onDelete: DeletePolicy.Pull
-      }
-    },
-    references: {}
   }
 };

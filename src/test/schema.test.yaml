@@ -1,19 +1,10 @@
-List:
+Author:
   foreignKeys:
-    users.$:
-      collection: User
+    favoriteBooks.$:
+      collection: Book
       onDelete: PULL
-Task:
+Book:
   foreignKeys:
-    list:
-      collection: List
+    author:
+      collection: Author
       onDelete: DELETE
-    createdBy:
-      collection: User
-      onDelete: NULLIFY
-    edits.$.user:
-      collection: User
-      onDelete: UNSET
-    assignedTo.$.user:
-      collection: User
-      onDelete: PULL

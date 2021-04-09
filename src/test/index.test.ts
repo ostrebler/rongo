@@ -15,7 +15,7 @@ import {
   SwitchSelector,
   TupleSelector
 } from "../.";
-import { graph, populateTest, rongo, User } from "./samples";
+import { Author, AuthorDb, Book, BookDb, graph, rongo } from "./samples";
 
 it("correctly loads and parses YAML and JSON configuration files", async () => {
   const rongoYml = new Rongo("mongodb://localhost:27017/rongo_test");
@@ -29,11 +29,50 @@ it("correctly connects to the database", async () => {
   expect(await rongo.active()).toBeTruthy();
   expect(await rongo.active()).toBeInstanceOf(MongoClient);
   expect(await rongo.handle).toBeInstanceOf(Db);
+  await rongo.drop();
 });
 
 it("correctly inserts nested documents", async () => {
-  await populateTest();
-  expect(await User.count()).toBe(3);
+  const [teamOfRivals] = await Book.insert([
+    {
+      title: "Team of Rivals",
+      author: {
+        name: "Doris Kearns Goodwin",
+        favoriteBooks: []
+      }
+    }
+  ]);
+
+  await Book.insert({
+    title: "Harry Potter",
+    author: {
+      name: "J.K. Rowling",
+      favoriteBooks: [
+        teamOfRivals._id,
+        {
+          title: "Emma",
+          author: {
+            name: "Jane Austen",
+            favoriteBooks: []
+          }
+        }
+      ]
+    }
+  });
+
+  const rowling = (await Author.findOne({ name: "J.K. Rowling" })) as AuthorDb;
+  const janeAusten = (await Author.findOne({
+    name: "Jane Austen"
+  })) as AuthorDb;
+  const emma = (await Book.findOne({ title: "Emma" })) as BookDb;
+
+  expect(await Book.count()).toBe(3);
+  expect(await Author.count()).toBe(3);
+  expect(emma.author.toHexString()).toBe(janeAusten._id.toHexString());
+  expect(rowling.favoriteBooks.map(id => id.toHexString())).toEqual([
+    teamOfRivals._id.toHexString(),
+    emma._id.toHexString()
+  ]);
 });
 
 it("correctly parses resolves", async () => {
