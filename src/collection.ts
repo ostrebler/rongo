@@ -165,6 +165,15 @@ export class Collection<T extends Document> {
     return this.has({ [this.key]: key } as FilterQuery<T>, { baseQuery: true });
   }
 
+  async hasAllKeys(keys: Array<any>) {
+    return (
+      keys.length ===
+      (await this.count({ [this.key]: { $in: keys } } as FilterQuery<T>, {
+        baseQuery: true
+      }))
+    );
+  }
+
   async isCapped(options?: { session: ClientSession }) {
     const col = await this.handle;
     return col.isCapped(options);
