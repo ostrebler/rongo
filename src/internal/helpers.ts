@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { Binary, ObjectId } from "mongodb";
 import { assign, isString } from "lodash";
 import { extname } from "path";
 import { readFileSync } from "fs";
@@ -19,7 +19,7 @@ import {
 
 // ObjectId is being reexported for practicality
 
-export { ObjectId };
+export { ObjectId, Binary };
 
 // This function creates a default collection config
 
