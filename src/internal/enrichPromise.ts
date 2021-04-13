@@ -37,9 +37,9 @@ export type RichPromise<S extends Selectable<Document>> = Promise<S> & {
 export function enrichPromise<T extends Document, S extends Selectable<T>>(
   collection: Collection<T>,
   promiseFactory: () => Promise<S>
-): RichPromise<S> {
+) {
   const promise = promiseFactory();
-  const richPromise = assign(promise, {
+  const richPromise: RichPromise<S> = assign(promise, {
     select(
       chunks: TemplateStringsArray | string | Selector,
       arg?: SelectArgument | SelectionOption | undefined,
