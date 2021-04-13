@@ -20,7 +20,7 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { castArray, isArray } from "lodash";
+import { castArray } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
@@ -100,6 +100,13 @@ export class Collection<T extends Document> {
     return col.countDocuments(normalized, options);
   }
 
+  countByKeys(keys: Array<any>, options?: MongoCountPreferences) {
+    return this.count({ [this.key]: { $in: keys } } as FilterQuery<T>, {
+      ...options,
+      baseQuery: true
+    });
+  }
+
   async distinct(
     key: string,
     query: FilterQuery<T> = {},
@@ -139,6 +146,13 @@ export class Collection<T extends Document> {
     });
   }
 
+  findByKeys(keys: Array<any>, options?: FindOneOptions<T>) {
+    return this.find({ [this.key]: { $in: keys } } as FilterQuery<T>, {
+      ...options,
+      baseQuery: true
+    });
+  }
+
   findReferences(key: any | Array<any>, options?: FindReferencesOptions) {
     return findReferences(this, castArray(key), options);
   }
@@ -156,18 +170,16 @@ export class Collection<T extends Document> {
     return Boolean(await this.count(query, { ...options, limit: 1 }));
   }
 
-  async hasKey(key: any | Array<any>, options?: { all?: boolean }) {
-    if (!isArray(key) || !options?.all)
-      return this.has(
-        { [this.key]: { $in: castArray(key) } } as FilterQuery<T>,
-        { baseQuery: true }
-      );
-    return (
-      key.length ===
-      (await this.count({ [this.key]: { $in: key } } as FilterQuery<T>, {
-        baseQuery: true
-      }))
+  async hasKey(key: any) {
+    return this.has({ [this.key]: key } as FilterQuery<T>, { baseQuery: true });
+  }
+
+  async hasKeys(keys: Array<any>, options?: { all?: boolean }) {
+    const count = await this.count(
+      { [this.key]: { $in: keys } } as FilterQuery<T>,
+      { baseQuery: true, ...(!options?.all && { limit: 1 }) }
     );
+    return count === (options?.all ? keys.length : 1);
   }
 
   async isCapped(options?: { session: ClientSession }) {
@@ -311,6 +323,18 @@ export class Collection<T extends Document> {
     });
   }
 
+  updateByKeys(
+    keys: Array<any>,
+    update: UpdateQuery<T> | Partial<T>,
+    options?: UpdateManyOptions
+  ) {
+    return this.update(
+      { [this.key]: { $in: keys } } as FilterQuery<T>,
+      update,
+      { ...options, multi: true, baseQuery: true }
+    );
+  }
+
   findOneAndUpdate(
     query: FilterQuery<T>,
     update: UpdateQuery<T> | T,
@@ -320,7 +344,7 @@ export class Collection<T extends Document> {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query, options);
       const result = await col.findOneAndUpdate(normalized, update, options);
-      return result.value ?? null;
+      return result.value === undefined ? null : result.value;
     });
   }
 
@@ -334,6 +358,18 @@ export class Collection<T extends Document> {
       update,
       { ...options, baseQuery: true }
     );
+  }
+
+  findByKeysAndUpdate(
+    keys: Array<any>,
+    update: UpdateQuery<T> | T,
+    options?: FindOneOptions<T> & UpdateManyOptions
+  ) {
+    return enrichPromise(this, async () => {
+      const docs = await this.findByKeys(keys, options);
+      await this.updateByKeys(keys, update, options);
+      return docs;
+    });
   }
 
   // Delete methods :
@@ -361,15 +397,20 @@ export class Collection<T extends Document> {
     return remover();
   }
 
-  deleteByKey(
-    key: any,
-    options: CommonOptions & {
-      propagate?: boolean;
-    }
-  ) {
+  deleteByKey(key: any, options?: CommonOptions & { propagate?: boolean }) {
     return this.delete({ [this.key]: key } as FilterQuery<T>, {
       ...options,
       single: true,
+      baseQuery: true
+    });
+  }
+
+  deleteByKeys(
+    keys: Array<any>,
+    options?: CommonOptions & { propagate?: boolean }
+  ) {
+    return this.delete({ [this.key]: { $in: keys } } as FilterQuery<T>, {
+      ...options,
       baseQuery: true
     });
   }
@@ -382,10 +423,7 @@ export class Collection<T extends Document> {
 
   findOneAndDelete(
     query: FilterQuery<T>,
-    options?: FindOneOptions<T> & {
-      propagate?: boolean;
-      baseQuery?: boolean;
-    }
+    options?: FindOneOptions<T> & { propagate?: boolean; baseQuery?: boolean }
   ) {
     return enrichPromise(this, async () => {
       const col = await this.handle;
@@ -407,6 +445,17 @@ export class Collection<T extends Document> {
     return this.findOneAndDelete({ [this.key]: key } as FilterQuery<T>, {
       ...options,
       baseQuery: true
+    });
+  }
+
+  findByKeysAndDelete(
+    keys: Array<any>,
+    options?: FindOneOptions<T> & { propagate?: boolean }
+  ) {
+    return enrichPromise(this, async () => {
+      const docs = await this.findByKeys(keys, options);
+      await this.deleteByKeys(keys, options);
+      return docs;
     });
   }
 
