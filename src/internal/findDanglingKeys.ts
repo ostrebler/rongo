@@ -30,7 +30,7 @@ export async function findDanglingKeys(
 
     // For each batch of documents in that collection :
     for (let skip = 0; skip < maxSkip; skip += batchSize) {
-      const documents = await collection.find(
+      const documents = collection.find(
         {},
         { baseQuery: true, skip, limit: batchSize }
       );
@@ -39,9 +39,7 @@ export async function findDanglingKeys(
         config.foreignKeys
       )) {
         // Get all values for that foreign key in the current batch :
-        let keys: Array<any> = await collection
-          .from(documents)
-          .select(foreignKey);
+        let keys: Array<any> = await documents.select(foreignKey);
 
         // Remove nullish and repeated values :
         keys = uniqBy(

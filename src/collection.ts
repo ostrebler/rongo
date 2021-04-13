@@ -173,12 +173,12 @@ export class Collection<T extends Document> {
     return this.has({ [this.key]: key } as FilterQuery<T>, { baseQuery: true });
   }
 
-  async hasKeys(keys: Array<any>, options?: { all?: boolean }) {
+  async hasKeys(keys: Array<any>, options?: { some?: boolean }) {
     const count = await this.count(
       { [this.key]: { $in: keys } } as FilterQuery<T>,
-      { baseQuery: true, ...(!options?.all && { limit: 1 }) }
+      { baseQuery: true, ...(options?.some && { limit: 1 }) }
     );
-    return count === (options?.all ? keys.length : 1);
+    return count === (options?.some ? 1 : keys.length);
   }
 
   async isCapped(options?: { session: ClientSession }) {
@@ -231,7 +231,10 @@ export class Collection<T extends Document> {
   async replaceOne(
     query: FilterQuery<T>,
     doc: InsertionDoc<T>,
-    options?: ReplaceOneOptions & { baseQuery?: boolean }
+    options?: ReplaceOneOptions & {
+      baseQuery?: boolean;
+      baseDocument?: boolean;
+    }
   ) {
     const col = await this.handle;
     const normalizedQuery = await normalizeFilterQuery(this, query, options);
@@ -240,7 +243,8 @@ export class Collection<T extends Document> {
       const normalizedDoc = await normalizeInsertionDoc(
         this,
         doc,
-        dependencies
+        dependencies,
+        options
       );
       return col.replaceOne(normalizedQuery, normalizedDoc as T, options);
     } catch (e) {
@@ -249,7 +253,11 @@ export class Collection<T extends Document> {
     }
   }
 
-  replaceByKey(key: any, doc: InsertionDoc<T>, options?: ReplaceOneOptions) {
+  replaceByKey(
+    key: any,
+    doc: InsertionDoc<T>,
+    options?: ReplaceOneOptions & { baseDocument?: boolean }
+  ) {
     return this.replaceOne({ [this.key]: key } as FilterQuery<T>, doc, {
       ...options,
       baseQuery: true
@@ -259,7 +267,10 @@ export class Collection<T extends Document> {
   findOneAndReplace(
     query: FilterQuery<T>,
     doc: InsertionDoc<T>,
-    options?: FindOneAndReplaceOption<T> & { baseQuery?: boolean }
+    options?: FindOneAndReplaceOption<T> & {
+      baseQuery?: boolean;
+      baseDocument?: boolean;
+    }
   ) {
     return enrichPromise(this, async () => {
       const col = await this.handle;
@@ -269,14 +280,15 @@ export class Collection<T extends Document> {
         const normalizedDoc = await normalizeInsertionDoc(
           this,
           doc,
-          dependencies
+          dependencies,
+          options
         );
         const result = await col.findOneAndReplace(
           normalizedQuery,
           normalizedDoc,
           options
         );
-        return result.value ?? null;
+        return result.value === undefined ? null : result.value;
       } catch (e) {
         await dependencies.delete();
         throw e;
@@ -287,7 +299,7 @@ export class Collection<T extends Document> {
   findByKeyAndReplace(
     key: any,
     doc: InsertionDoc<T>,
-    options?: FindOneAndReplaceOption<T>
+    options?: FindOneAndReplaceOption<T> & { baseDocument?: boolean }
   ) {
     return this.findOneAndReplace({ [this.key]: key } as FilterQuery<T>, doc, {
       ...options,
