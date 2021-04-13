@@ -71,7 +71,7 @@ export class Collection<T extends Document> {
 
   // Document inspection method :
 
-  from<S extends Selectable<T>>(selectable: S) {
+  from<S extends Selectable<T>>(selectable: S | Promise<S>) {
     return enrichPromise(this, async () => selectable);
   }
 
@@ -160,7 +160,7 @@ export class Collection<T extends Document> {
     return this.has({ [this.key]: key } as FilterQuery<T>, { baseQuery: true });
   }
 
-  async hasAllKeys(keys: Array<any>) {
+  async hasKeys(keys: Array<any>) {
     return (
       keys.length ===
       (await this.count({ [this.key]: { $in: keys } } as FilterQuery<T>, {
