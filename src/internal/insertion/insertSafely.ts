@@ -4,7 +4,7 @@ import {
   InsertWriteOpResult,
   WithId
 } from "mongodb";
-import { entries, isArray } from "lodash";
+import { castArray, entries, isArray } from "lodash";
 import {
   Collection,
   Document,
@@ -68,7 +68,7 @@ export class DependencyCollector {
   add(collection: Collection<any>, keys: any | Array<any>) {
     if (!(collection.name in this.dependencies))
       this.dependencies[collection.name] = [];
-    this.dependencies[collection.name].push(...(isArray(keys) ? keys : [keys]));
+    this.dependencies[collection.name].push(...castArray(keys));
   }
 
   async delete() {
