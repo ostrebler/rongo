@@ -426,10 +426,12 @@ export class Collection<T extends Document> {
     });
   }
 
-  async drop(options?: { session: ClientSession; propagate?: boolean }) {
+  async drop(options?: { session?: ClientSession; propagate?: boolean }) {
     const col = await this.handle;
     await this.delete({}, { ...options, baseQuery: true });
-    return col.drop();
+    return col.drop(
+      options?.session ? { session: options?.session } : undefined
+    );
   }
 
   findOneAndDelete(
