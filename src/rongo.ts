@@ -18,7 +18,7 @@ import {
   findDanglingKeys,
   Graph,
   loadSchema,
-  ObjectId,
+  ObjectID,
   Schema
 } from ".";
 
@@ -140,7 +140,7 @@ export class Rongo {
     return db.stats(options);
   }
 
-  async watch<T extends object = { _id: ObjectId }>(
+  async watch<T extends object = { _id: ObjectID }>(
     pipeline?: object[],
     options?: ChangeStreamOptions & { session?: ClientSession }
   ) {

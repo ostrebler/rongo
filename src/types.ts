@@ -1,5 +1,4 @@
 import { WithId } from "mongodb";
-import { SelectArgument, SelectionOption, Selector } from ".";
 
 // Used to store the collection dependencies in an optimally exploitable manner
 
@@ -59,14 +58,6 @@ export enum DeletePolicy {
   Pull = "PULL" // x.**.$.**
 }
 
-// Used as database scan result object :
-
-export type DanglingKeys = {
-  [collection: string]: {
-    [foreignKey: string]: Array<any>;
-  };
-};
-
 // The general type constraint for documents
 
 export type Document = object;
@@ -75,39 +66,12 @@ export type Document = object;
 
 export type Path = Array<string>;
 
-// Used by collection select ops to type-check selectable resource
+// Used to type-check selectable resource
 
-export type SelectableUnit<T extends Document> = T | WithId<T>;
+type SelectableDocument<T extends Document> = T | WithId<T> | Partial<T>;
 
 export type Selectable<T extends Document> =
   | null
   | undefined
-  | SelectableUnit<T>
-  | Partial<SelectableUnit<T>>
-  | Array<SelectableUnit<T>>;
-
-// Used by collection to add selection to promises
-
-export type SelectablePromise<T extends Selectable<Document>> = Promise<T> & {
-  select<K extends T extends Array<infer U> ? keyof U : never>(
-    selector: K,
-    options?: SelectionOption
-  ): Promise<T extends Array<infer U> ? Array<U[K]> : never>;
-  select<K extends keyof T>(
-    selector: K,
-    options?: SelectionOption
-  ): Promise<T[K]>;
-  select(selector: string | Selector, options?: SelectionOption): Promise<any>;
-  select(
-    chunks: TemplateStringsArray,
-    ...args: Array<SelectArgument>
-  ): Promise<any>;
-};
-
-// Used when collecting foreign references to keys
-
-export type References = {
-  [collection: string]: {
-    [foreignKey: string]: Array<any>;
-  };
-};
+  | SelectableDocument<T>
+  | Array<SelectableDocument<T>>;

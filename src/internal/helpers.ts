@@ -1,25 +1,13 @@
-import { Binary, ObjectId } from "mongodb";
-import { assign, isString } from "lodash";
+import { Binary, ObjectID } from "mongodb";
+import { isString } from "lodash";
 import { extname } from "path";
 import { readFileSync } from "fs";
 import YAML from "yaml";
-import {
-  Collection,
-  CollectionConfig,
-  Document,
-  parseSelector,
-  select,
-  Selectable,
-  SelectablePromise,
-  SelectArgument,
-  SelectionOption,
-  Selector,
-  Stack
-} from "../.";
+import { CollectionConfig, Stack } from "../.";
 
 // ObjectId is being reexported for practicality
 
-export { ObjectId, Binary };
+export { ObjectID, Binary };
 
 // This function creates a default collection config
 
@@ -68,35 +56,4 @@ export function asyncFilter<T>(
       (await predicate(item, index, array)) ? [...(await acc), item] : acc,
     Promise.resolve([])
   );
-}
-
-// This function patches Promises to make them selectable
-
-export function selectablePromise<T extends Document, S extends Selectable<T>>(
-  collection: Collection<T>,
-  promiseFactory: () => Promise<S>
-): SelectablePromise<S> {
-  const promise = promiseFactory();
-  return assign(promise, {
-    select(
-      chunks: TemplateStringsArray | string | Selector,
-      arg: SelectArgument | SelectionOption | undefined,
-      ...args: Array<SelectArgument>
-    ) {
-      let selector: Selector;
-      let options: SelectionOption | undefined;
-      if (isString(chunks)) {
-        selector = parseSelector(chunks);
-        options = arg as SelectionOption | undefined;
-      } else if (chunks instanceof Selector) {
-        selector = chunks;
-        options = arg as SelectionOption | undefined;
-      } else
-        selector =
-          arg === undefined ? select(chunks) : select(chunks, arg, ...args);
-      return promise.then(selectable =>
-        collection.select(selector, selectable, options)
-      );
-    }
-  });
 }

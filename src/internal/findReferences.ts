@@ -1,10 +1,15 @@
 import { entries, isEmpty, keys } from "lodash";
-import { Collection, IdentitySelector, References } from "../.";
+import {
+  Collection,
+  FindReferencesOptions,
+  IdentitySelector,
+  References
+} from "../.";
 
 export async function findReferences(
   collection: Collection<any>,
   allKeys: Array<any>,
-  options?: { keysOnly?: boolean }
+  options?: FindReferencesOptions
 ) {
   const references: References = Object.create(null);
 
@@ -20,8 +25,19 @@ export async function findReferences(
     foreignKeys[foreignKey].push(...refs);
   };
 
+  // We start by applying the optional filters to the collection set to consider :
+  const collections = options?.collections ?? [];
+  const excludeCollections = options?.excludeCollections ?? [];
+
+  let referenceEntries = entries(collection.references).filter(
+    ([colName]) => !excludeCollections.includes(colName)
+  );
+  referenceEntries = isEmpty(collections)
+    ? referenceEntries
+    : referenceEntries.filter(([colName]) => collections.includes(colName));
+
   // For each collection that might reference the current collection :
-  for (const [colName, foreignKeys] of entries(collection.references)) {
+  for (const [colName, foreignKeys] of referenceEntries) {
     // Get the collection :
     const refCol = collection.rongo.collection(colName);
     // For each relevant foreign key in that collection :

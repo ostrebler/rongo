@@ -43,7 +43,7 @@ export async function insertSafely<T extends Document>(
   }
   dependencies.add(
     collection,
-    await collection.select(collection.key, documents)
+    await collection.from(documents).select(collection.key)
   );
   if (!result.result.ok)
     throw new Error(

@@ -1,4 +1,4 @@
-import { DeletePolicy, Graph, InsertPolicy, ObjectId, Rongo } from "../.";
+import { DeletePolicy, Graph, InsertPolicy, ObjectID, Rongo } from "../.";
 
 // The main test database
 
@@ -8,15 +8,15 @@ rongo.schema("./src/test/schema.test.json");
 // Some types for TS testing
 
 export type AuthorDb = {
-  _id: ObjectId;
+  _id: ObjectID;
   name: string;
-  favoriteBooks: Array<ObjectId>;
+  favoriteBooks: Array<ObjectID>;
 };
 
 export type BookDb = {
-  _id: ObjectId;
+  _id: ObjectID;
   title: string;
-  author: ObjectId;
+  author: ObjectID;
 };
 
 // Some test collections :

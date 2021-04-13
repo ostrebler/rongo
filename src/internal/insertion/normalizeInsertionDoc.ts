@@ -35,6 +35,6 @@ export async function normalizeInsertionDoc<T extends Document>(
       options
     );
     // And return its primary key
-    return foreignCol.select(foreignCol.key, nestedDoc);
+    return foreignCol.from(nestedDoc).select(foreignCol.key);
   });
 }

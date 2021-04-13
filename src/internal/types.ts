@@ -15,3 +15,27 @@ export type RemoveScheduler = Array<() => Promise<any>>;
 export type DeletedKeys = {
   [collection: string]: Array<any>;
 };
+
+// Used to tweak the findReferences algorithm
+
+export type FindReferencesOptions = {
+  collections?: Array<string>;
+  excludeCollections?: Array<string>;
+  keysOnly?: boolean;
+};
+
+// Used when collecting foreign references to document(s)
+
+export type References = {
+  [collection: string]: {
+    [foreignKey: string]: Array<any>;
+  };
+};
+
+// Used as database scan result object :
+
+export type DanglingKeys = {
+  [collection: string]: {
+    [foreignKey: string]: Array<any>;
+  };
+};

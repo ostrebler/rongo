@@ -20,27 +20,25 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { isArray, isString } from "lodash";
+import { isArray } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
   DependencyCollector,
   Document,
+  enrichPromise,
   FilterQuery,
   findReferences,
+  FindReferencesOptions,
   InsertionDoc,
   insertSafely,
   normalizeFilterQuery,
   normalizeInsertionDoc,
-  parseSelector,
   propagateDelete,
   RemoveScheduler,
+  RichPromise,
   Rongo,
-  Selectable,
-  SelectablePromise,
-  selectablePromise,
-  SelectionOption,
-  Selector
+  Selectable
 } from ".";
 
 // The Collection class
@@ -71,16 +69,13 @@ export class Collection<T extends Document> {
     return this.rongo.graph[this.name].references;
   }
 
-  // Query methods :
+  // Document inspection method :
 
-  select(
-    selector: string | Selector,
-    selectable: Selectable<T>,
-    options?: SelectionOption
-  ) {
-    if (isString(selector)) selector = parseSelector(selector);
-    return selector.resolve(selectable, this, [], options);
+  from<S extends Selectable<T>>(selectable: S) {
+    return enrichPromise(this, () => Promise.resolve(selectable));
   }
+
+  // Query methods :
 
   async aggregate<U = T>(
     pipeline: Array<any> = [],
@@ -119,7 +114,7 @@ export class Collection<T extends Document> {
     query: FilterQuery<T> = {},
     options?: FindOneOptions<T> & { baseQuery?: boolean }
   ) {
-    return selectablePromise(this, async () => {
+    return enrichPromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query, options);
       return col.find(normalized, options as any).toArray();
@@ -130,7 +125,7 @@ export class Collection<T extends Document> {
     query: FilterQuery<T> = {},
     options?: FindOneOptions<T> & { baseQuery?: boolean }
   ) {
-    return selectablePromise(this, async () => {
+    return enrichPromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query, options);
       return col.findOne(normalized, options as object);
@@ -144,7 +139,7 @@ export class Collection<T extends Document> {
     });
   }
 
-  findReferences(key: any | Array<any>, options?: { keysOnly?: boolean }) {
+  findReferences(key: any | Array<any>, options?: FindReferencesOptions) {
     return findReferences(this, isArray(key) ? key : [key], options);
   }
 
@@ -197,23 +192,18 @@ export class Collection<T extends Document> {
   insert(
     doc: InsertionDoc<T>,
     options?: CollectionInsertManyOptions & { baseDocument?: boolean }
-  ): SelectablePromise<WithId<T>>;
+  ): RichPromise<WithId<T>>;
 
   insert(
     docs: Array<InsertionDoc<T>>,
     options?: CollectionInsertManyOptions & { baseDocument?: boolean }
-  ): SelectablePromise<Array<WithId<T>>>;
-
-  insert(
-    doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
-    options?: CollectionInsertManyOptions & { baseDocument?: boolean }
-  ): SelectablePromise<WithId<T> | Array<WithId<T>>>;
+  ): RichPromise<Array<WithId<T>>>;
 
   insert(
     doc: InsertionDoc<T> | Array<InsertionDoc<T>>,
     options?: CollectionInsertManyOptions & { baseDocument?: boolean }
   ) {
-    return selectablePromise(this, async () => {
+    return enrichPromise(this, async () => {
       const dependencies = new DependencyCollector(this.rongo);
       try {
         return insertSafely(this, doc, dependencies, options);
@@ -259,7 +249,7 @@ export class Collection<T extends Document> {
     doc: InsertionDoc<T>,
     options?: FindOneAndReplaceOption<T> & { baseQuery?: boolean }
   ) {
-    return selectablePromise(this, async () => {
+    return enrichPromise(this, async () => {
       const col = await this.handle;
       const normalizedQuery = await normalizeFilterQuery(this, query, options);
       const dependencies = new DependencyCollector(this.rongo);
@@ -325,7 +315,7 @@ export class Collection<T extends Document> {
     update: UpdateQuery<T> | T,
     options?: FindOneAndUpdateOption<T> & { baseQuery?: boolean }
   ) {
-    return selectablePromise(this, async () => {
+    return enrichPromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query, options);
       const result = await col.findOneAndUpdate(normalized, update, options);
@@ -396,7 +386,7 @@ export class Collection<T extends Document> {
       baseQuery?: boolean;
     }
   ) {
-    return selectablePromise(this, async () => {
+    return enrichPromise(this, async () => {
       const col = await this.handle;
       const normalized = await normalizeFilterQuery(this, query, options);
       const result = await col.findOne(normalized, options as object);

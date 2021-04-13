@@ -1,5 +1,5 @@
 import { OptionalId } from "mongodb";
-import { Document, ObjectId } from "../.";
+import { Document, ObjectID } from "../.";
 
 export type InsertionDoc<T extends Document> = InsertionDocPatch<OptionalId<T>>;
 
@@ -8,7 +8,7 @@ export type InsertionDocPatch<T extends Document> = {
 };
 
 export type PrimitivePatch<T> = T extends object
-  ? T extends ObjectId
-    ? ObjectId | InsertionDoc<any>
+  ? T extends ObjectID
+    ? ObjectID | InsertionDoc<any>
     : InsertionDocPatch<T>
   : T | InsertionDoc<any>;

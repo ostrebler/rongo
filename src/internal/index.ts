@@ -1,5 +1,6 @@
 export * from "./types";
 export * from "./buildGraph";
+export * from "./enrichPromise";
 export * from "./mapDeep";
 export * from "./findDanglingKeys";
 export * from "./insertion";

@@ -39,7 +39,9 @@ export async function findDanglingKeys(
         config.foreignKeys
       )) {
         // Get all values for that foreign key in the current batch :
-        let keys: Array<any> = await collection.select(foreignKey, documents);
+        let keys: Array<any> = await collection
+          .from(documents)
+          .select(foreignKey);
 
         // Remove nullish and repeated values :
         keys = uniqBy(
