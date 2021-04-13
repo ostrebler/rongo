@@ -20,7 +20,7 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { isArray } from "lodash";
+import { castArray, isArray } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
@@ -140,7 +140,7 @@ export class Collection<T extends Document> {
   }
 
   findReferences(key: any | Array<any>, options?: FindReferencesOptions) {
-    return findReferences(this, isArray(key) ? key : [key], options);
+    return findReferences(this, castArray(key), options);
   }
 
   async geoHaystackSearch(
@@ -156,14 +156,15 @@ export class Collection<T extends Document> {
     return Boolean(await this.count(query, { ...options, limit: 1 }));
   }
 
-  hasKey(key: any) {
-    return this.has({ [this.key]: key } as FilterQuery<T>, { baseQuery: true });
-  }
-
-  async hasKeys(keys: Array<any>) {
+  async hasKey(key: any | Array<any>, options?: { all?: boolean }) {
+    if (!isArray(key) || !options?.all)
+      return this.has(
+        { [this.key]: { $in: castArray(key) } } as FilterQuery<T>,
+        { baseQuery: true }
+      );
     return (
-      keys.length ===
-      (await this.count({ [this.key]: { $in: keys } } as FilterQuery<T>, {
+      key.length ===
+      (await this.count({ [this.key]: { $in: key } } as FilterQuery<T>, {
         baseQuery: true
       }))
     );

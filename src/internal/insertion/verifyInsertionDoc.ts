@@ -39,7 +39,7 @@ export async function verifyInsertionDoc<T extends Document>(
         );
     } else {
       const nonNull = value.filter(item => item !== null);
-      if (!(await foreignCol.hasKeys(nonNull)))
+      if (!(await foreignCol.hasKey(nonNull, { all: true })))
         return fail(
           `some keys aren't refering to existing documents in collection <${foreignCol.name}>`
         );
