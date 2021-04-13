@@ -68,7 +68,11 @@ export type Path = Array<string>;
 
 // Used to type-check selectable resource
 
-type SelectableDocument<T extends Document> = T | WithId<T> | Partial<T>;
+type SelectableDocumentAtom<T extends Document> = T | WithId<T>;
+
+type SelectableDocument<T extends Document> =
+  | SelectableDocumentAtom<T>
+  | Partial<SelectableDocumentAtom<T>>;
 
 export type Selectable<T extends Document> =
   | null

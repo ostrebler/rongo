@@ -72,7 +72,7 @@ export class Collection<T extends Document> {
   // Document inspection method :
 
   from<S extends Selectable<T>>(selectable: S) {
-    return enrichPromise(this, () => Promise.resolve(selectable));
+    return enrichPromise(this, async () => selectable);
   }
 
   // Query methods :
