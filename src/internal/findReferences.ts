@@ -1,4 +1,4 @@
-import { entries, isEmpty, keys } from "lodash";
+import { castArray, entries, isEmpty, keys } from "lodash";
 import {
   Collection,
   FindReferencesOptions,
@@ -8,9 +8,10 @@ import {
 
 export async function findReferences(
   collection: Collection<any>,
-  allKeys: Array<any>,
+  key: any | Array<any>,
   options?: FindReferencesOptions
 ) {
+  const allKeys = castArray(key);
   const references: References = Object.create(null);
 
   // The following method adds new documents to the reference set :

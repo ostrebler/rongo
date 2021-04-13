@@ -20,7 +20,6 @@ import {
   UpdateQuery,
   WithId
 } from "mongodb";
-import { castArray } from "lodash";
 import {
   createDefaultConfig,
   DeletedKeys,
@@ -154,7 +153,7 @@ export class Collection<T extends Document> {
   }
 
   findReferences(key: any | Array<any>, options?: FindReferencesOptions) {
-    return findReferences(this, castArray(key), options);
+    return findReferences(this, key, options);
   }
 
   async geoHaystackSearch(
