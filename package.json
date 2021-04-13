@@ -1,6 +1,6 @@
 {
   "name": "rongo.js",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A happy marriage between the relational and the NoSQL world",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

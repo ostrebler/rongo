@@ -1,4 +1,4 @@
-import { Binary, ObjectID } from "mongodb";
+import { Binary, ObjectID, UpdateQuery } from "mongodb";
 import { isString } from "lodash";
 import { extname } from "path";
 import { readFileSync } from "fs";
@@ -7,7 +7,7 @@ import { CollectionConfig, Stack } from "../.";
 
 // ObjectId is being reexported for practicality
 
-export { ObjectID, Binary };
+export { ObjectID, Binary, UpdateQuery };
 
 // This function creates a default collection config
 
