@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 import YAML from "yaml";
 import { CollectionConfig, Stack } from "../.";
 
-// ObjectId is being reexported for practicality
+// Some reexports for practicality
 
 export { ObjectID, Binary, UpdateQuery };
 
