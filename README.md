@@ -134,7 +134,7 @@ await Book.find({
 
 ### **▶️ Populate and aggregate results with a simple yet expressive syntax :**
 
-_"What's the name of Harry Potter's author ?"_
+_"Who wrote Harry Potter ?"_
 
 ```javascript
 await Book.findOne({ title: "Harry Potter" }).select`author name`;
