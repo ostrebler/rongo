@@ -134,17 +134,7 @@ await Book.find({
 
 ### **▶️ Populate and aggregate results with a simple yet expressive syntax :**
 
-Get the title of J.K. Rowling's favorite books :
-
-```javascript
-await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
-```
-
-```bson
-["Emma"]
-```
-
-Get Harry Potter's author name :
+_"What's the name of Harry Potter's author ?"_
 
 ```javascript
 await Book.findOne({ title: "Harry Potter" }).select`author name`;
@@ -154,7 +144,28 @@ await Book.findOne({ title: "Harry Potter" }).select`author name`;
 "J.K. Rowling"
 ```
 
-Get the "Harry Potter" document, and partially populate its author field :
+_"What are the titles of J.K. Rowling's favorite books ?"_
+
+```javascript
+await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
+```
+
+```bson
+["Emma"]
+```
+
+_"Who wrote J.K. Rowling's favorite books ?"_
+
+```javascript
+await Author.findOne({ name: "J.K. Rowling" })
+  .select`favoriteBooks author name`;
+```
+
+```bson
+["Jane Austen"]
+```
+
+_"Get me the "Harry Potter" document, and partially populate its author field"_
 
 ```javascript
 await Book.findOne({ title: "Harry Potter" }).select`{ *, author { name } }`;
