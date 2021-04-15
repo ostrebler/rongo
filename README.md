@@ -29,7 +29,7 @@
 
 ## Overview
 
-### **▶️ Wrap your NoSQL MongoDB into a relational handler without altering the database :**
+### **▶️ Create your Rongo handler :**
 
 ```javascript
 import Rongo from "rongo.js";
@@ -132,7 +132,7 @@ await Book.find({
 ]
 ```
 
-### **▶️ Populate and aggregate results with a simple yet expressive selection syntax :**
+### **▶️ Populate and aggregate results with a simple yet expressive syntax :**
 
 ```javascript
 await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
