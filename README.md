@@ -144,7 +144,7 @@ await Book.findOne({ title: "Harry Potter" }).select`author name`;
 "J.K. Rowling"
 ```
 
-_"What are the titles of J.K. Rowling's favorite books ?"_
+_"What's the title of J.K. Rowling's favorite books ?"_
 
 ```javascript
 await Author.findOne({ name: "J.K. Rowling" }).select`favoriteBooks title`;
