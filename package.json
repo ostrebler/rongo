@@ -1,7 +1,7 @@
 {
   "name": "rongo.js",
-  "version": "0.2.8",
-  "description": "A happy marriage between the relational and the NoSQL world",
+  "version": "0.2.9",
+  "description": "A happy marriage between the relational and the NoSQL world. In short : MongoDB, but with relations.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

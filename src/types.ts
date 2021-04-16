@@ -20,6 +20,7 @@ export type CollectionConfig = {
 
 export type ForeignKeyConfig = {
   path: Path;
+  updater: [string, string | null] | null;
   collection: string;
   onInsert: InsertPolicy;
   onDelete: DeletePolicy;

@@ -10,14 +10,12 @@ import {
   MongoClientOptions,
   ReadPreferenceOrMode
 } from "mongodb";
-import { isString } from "lodash";
 import {
   buildGraph,
   Collection,
   Document,
   findDanglingKeys,
   Graph,
-  loadSchema,
   ObjectID,
   Schema
 } from ".";
@@ -30,7 +28,10 @@ export class Rongo {
   graph: Graph;
   isConnected: boolean;
 
-  constructor(uri: string | Promise<string>, options?: MongoClientOptions) {
+  constructor(
+    uri: string | Promise<string>,
+    options?: MongoClientOptions & { schema?: Schema | string }
+  ) {
     this.client = Promise.resolve(uri).then(uri =>
       MongoClient.connect(uri, {
         useNewUrlParser: true,
@@ -40,12 +41,12 @@ export class Rongo {
     );
     this.handle = this.client.then(client => {
       const dbName = (client as any).s.options.dbName;
-      console.log(dbName);
       if (!dbName)
         throw new Error("The connection uri must contain a database name");
       return client.db(dbName);
     });
     this.graph = Object.create(null);
+    if (options?.schema) this.schema(options.schema);
     this.isConnected = false;
     this.client.then(client => {
       this.isConnected = client.isConnected();
@@ -132,7 +133,7 @@ export class Rongo {
   }
 
   schema(schema: Schema | string) {
-    this.graph = buildGraph(isString(schema) ? loadSchema(schema) : schema);
+    this.graph = buildGraph(schema);
   }
 
   async stats(options?: { scale?: number }) {

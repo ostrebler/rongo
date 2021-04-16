@@ -32,6 +32,7 @@ export const graph: Graph = {
     foreignKeys: {
       favoriteBooks: {
         path: ["favoriteBooks", "$"],
+        updater: ["favoriteBooks", null],
         collection: "Book",
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Pull
@@ -41,6 +42,7 @@ export const graph: Graph = {
       Book: {
         author: {
           path: ["author"],
+          updater: null,
           collection: "Author",
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Delete
@@ -53,6 +55,7 @@ export const graph: Graph = {
     foreignKeys: {
       author: {
         path: ["author"],
+        updater: null,
         collection: "Author",
         onInsert: InsertPolicy.Verify,
         onDelete: DeletePolicy.Delete
@@ -62,6 +65,7 @@ export const graph: Graph = {
       Author: {
         favoriteBooks: {
           path: ["favoriteBooks", "$"],
+          updater: ["favoriteBooks", null],
           collection: "Book",
           onInsert: InsertPolicy.Verify,
           onDelete: DeletePolicy.Pull

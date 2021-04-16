@@ -5,7 +5,6 @@ import {
   DeletedKeys,
   DeletePolicy,
   Document,
-  Path,
   RemoveScheduler
 } from "../.";
 
@@ -58,7 +57,7 @@ export async function propagateDelete<T extends Document>(
           case DeletePolicy.Unset:
             // Target relevant documents and unset where necessary :
             scheduler.push(() => {
-              const [target, filter] = toSetUpdater(foreignKeyConfig.path);
+              const [target, filter] = foreignKeyConfig.updater!;
               return refCol.update(
                 refQuery,
                 { $unset: { [target]: 1 } },
@@ -74,7 +73,7 @@ export async function propagateDelete<T extends Document>(
           case DeletePolicy.Nullify:
             // Target relevant documents and nullify where necessary :
             scheduler.push(() => {
-              const [target, filter] = toSetUpdater(foreignKeyConfig.path);
+              const [target, filter] = foreignKeyConfig.updater!;
               return refCol.update(
                 refQuery,
                 { $set: { [target]: null } },
@@ -90,7 +89,7 @@ export async function propagateDelete<T extends Document>(
           case DeletePolicy.Pull:
             // Target relevant documents and pull where necessary :
             scheduler.push(() => {
-              const [target, filter] = toPullUpdater(foreignKeyConfig.path);
+              const [target, filter] = foreignKeyConfig.updater!;
               return refCol.update(
                 refQuery,
                 {
@@ -146,64 +145,4 @@ async function getKeys<T extends Document>(
   markedKeys.push(...keysToDelete);
   // Return the unmarked keys :
   return keysToDelete;
-}
-
-/* This function transforms a key path to a valid [$set-like update query target, array filter] pair
- *
- * a           => a                  | null
- * a.$         => a.$[f]             | f
- * a.b         => a.b                | null
- * a.b.c       => a.b.c              | null
- * a.$.b       => a.$[f].b           | f.b
- * a.$.b.$     => a.$[].b.$[f]       | f
- * a.$.b.c     => a.$[f].b.c         | f.b.c
- * a.$.b.$.c   => a.$[].b.$[f].c     | f.c
- * a.$.b.$.c.$ => a.$[].b.$[].c.$[f] | f
- * */
-
-function toSetUpdater(path: Path) {
-  const [target, filter] = [...path]
-    .reverse()
-    .reduce<[Array<string>, Array<string> | null]>(
-      ([acc, filter], route) => {
-        if (route !== "$") return [[route, ...acc], filter];
-        if (filter) return [["$[]", ...acc], filter];
-        return [
-          ["$[f]", ...acc],
-          ["f", ...acc]
-        ];
-      },
-      [[], null]
-    );
-  return [target.join("."), filter && filter.join(".")] as const;
-}
-
-/* This function transforms a key path to a valid [$pull-like update query target, element filter] pair
- *
- * a           => NEVER
- * a.$         => a              | null
- * a.b         => NEVER
- * a.b.c       => NEVER
- * a.$.b       => a              | b
- * a.$.b.$     => a.$[].b        | null
- * a.$.b.c     => a              | b.c
- * a.$.b.$.c   => a.$[].b        | c
- * a.$.b.$.c.$ => a.$[].b.$[].c  | null
- * */
-
-function toPullUpdater(path: Path) {
-  const [target, filter] = [...path]
-    .reverse()
-    .reduce<[Array<string>, Array<string>, boolean]>(
-      ([acc, filter, hit], route) => {
-        if (route !== "$")
-          return hit
-            ? [[route, ...acc], filter, hit]
-            : [acc, [route, ...filter], hit];
-        if (!hit) return [acc, filter, true];
-        return [["$[]", ...acc], filter, hit];
-      },
-      [[], [], false]
-    );
-  return [target.join("."), isEmpty(filter) ? null : filter.join(".")] as const;
 }

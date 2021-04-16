@@ -1,17 +1,20 @@
-import { entries, values } from "lodash";
-import Ajv from "ajv";
+import { entries, isString } from "lodash";
 import {
   createDefaultConfig,
   DeletePolicy,
   ForeignKeyConfig,
   Graph,
   InsertPolicy,
-  Schema
-} from "../.";
+  isSchema,
+  loadSchema,
+  toPullUpdater,
+  toSetUpdater
+} from "../../.";
 
 // This function transforms a schema configuration into an exploitable internal dependency graph
 
 export function buildGraph(schema: unknown) {
+  if (isString(schema)) schema = loadSchema(schema);
   if (!isSchema(schema))
     throw new Error(
       "The schema is invalid, please refer to the doc to make sure it has the correct structure and follows the expected key patterns"
@@ -35,9 +38,21 @@ export function buildGraph(schema: unknown) {
       const path = pathStr.split(".");
       const foreignKey = path.filter(route => route !== "$").join(".");
 
+      // Create the updater pair in case of an update delete policy :
+      let updater: ForeignKeyConfig["updater"] = null;
+      switch (pathConfig.onDelete) {
+        case DeletePolicy.Unset:
+        case DeletePolicy.Nullify:
+          updater = toSetUpdater(path);
+          break;
+        case DeletePolicy.Pull:
+          updater = toPullUpdater(path);
+      }
+
       // Create the config for the current foreign key :
       const foreignKeyConfig: ForeignKeyConfig = {
         path,
+        updater,
         collection: pathConfig.collection ?? collection,
         onInsert: pathConfig.onInsert ?? InsertPolicy.Verify,
         onDelete: pathConfig.onDelete ?? DeletePolicy.Bypass
@@ -67,46 +82,3 @@ export function buildGraph(schema: unknown) {
 
   return graph;
 }
-
-// This callback is used to validate the JSON structure of a schema
-
-const id = "([a-zA-Z_-][a-zA-Z0-9_-]*)";
-
-const isSchema = new Ajv().compile<Schema>({
-  type: "object",
-  additionalProperties: false,
-  patternProperties: {
-    [`^${id}$`]: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        key: {
-          type: "string",
-          pattern: `^${id}(\\.${id})*$`
-        },
-        foreignKeys: {
-          type: "object",
-          additionalProperties: false,
-          patternProperties: {
-            [`^${id}(\\.(${id}|\\$))*$`]: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                collection: {
-                  type: "string",
-                  pattern: `^${id}$`
-                },
-                onInsert: {
-                  enum: values(InsertPolicy)
-                },
-                onDelete: {
-                  enum: values(DeletePolicy)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-});
