@@ -1,4 +1,11 @@
-import { DeletePolicy, Graph, InsertPolicy, ObjectID, Rongo } from "../.";
+import {
+  DeletePolicy,
+  Graph,
+  InsertPolicy,
+  ObjectID,
+  Rongo,
+  Schema
+} from "../.";
 
 // The main test database
 
@@ -23,6 +30,27 @@ export type BookDb = {
 
 export const Author = rongo.collection<AuthorDb>("Author");
 export const Book = rongo.collection<BookDb>("Book");
+
+// The inline-ts version of the test schema :
+
+export const testSchema: Schema = {
+  Author: {
+    foreignKeys: {
+      "favoriteBooks.$": {
+        collection: "Book",
+        onDelete: DeletePolicy.Pull
+      }
+    }
+  },
+  Book: {
+    foreignKeys: {
+      author: {
+        collection: "Author",
+        onDelete: DeletePolicy.Delete
+      }
+    }
+  }
+};
 
 // The full graph that should be calculated for the test database :
 

@@ -15,7 +15,15 @@ import {
   SwitchSelector,
   TupleSelector
 } from "../.";
-import { Author, AuthorDb, Book, BookDb, graph, rongo } from "./samples";
+import {
+  Author,
+  AuthorDb,
+  Book,
+  BookDb,
+  graph,
+  rongo,
+  testSchema
+} from "./samples";
 
 it("correctly loads and parses YAML and JSON configuration files", async () => {
   const rongoYml = new Rongo("mongodb://localhost:27017/rongo_test");
@@ -23,12 +31,19 @@ it("correctly loads and parses YAML and JSON configuration files", async () => {
   expect(rongo.graph).toEqual(rongoYml.graph);
   expect(rongo.graph).toEqual(graph);
   await rongoYml.close();
+
+  const rongoInl = new Rongo("mongodb://localhost:27017/rongo_test", {
+    schema: testSchema
+  });
+  expect(rongo.graph).toEqual(rongoInl.graph);
+  await rongoInl.close();
 });
 
 it("correctly connects to the database", async () => {
   expect(await rongo.active()).toBeTruthy();
   expect(await rongo.active()).toBeInstanceOf(MongoClient);
   expect(await rongo.handle).toBeInstanceOf(Db);
+  expect(rongo.isConnected).toBe(true);
   await rongo.drop();
 });
 
@@ -75,7 +90,102 @@ it("correctly inserts nested documents", async () => {
   ]);
 });
 
-it("correctly parses resolves", async () => {
+it("correctly resolves nested filter queries", async () => {
+  const books1 = await Book.find({
+    author: {
+      $in: {
+        name: "J.K. Rowling"
+      }
+    }
+  });
+
+  const books2 = await Book.find({
+    author: {
+      $in: {
+        favoriteBooks: {
+          $in: {
+            title: "Emma"
+          }
+        }
+      }
+    }
+  });
+
+  const books3 = await Book.find({
+    author: {
+      $in: {
+        favoriteBooks: {
+          $in: [
+            {
+              author: {
+                $in: {
+                  name: "Jane Austen"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  });
+
+  const books4 = await Book.find({
+    author: {
+      $in: {
+        favoriteBooks: {
+          $in: [
+            {
+              author: {
+                $in: [{ name: "Jane Austen" }, { name: "Jena Austen" }]
+              }
+            }
+          ]
+        }
+      }
+    }
+  });
+
+  expect(books1.length).toBe(1);
+  expect(books1[0].title).toBe("Harry Potter");
+  expect(books2).toEqual(books1);
+  expect(books3).toEqual(books1);
+  expect(books4).toEqual(books1);
+});
+
+it("correctly cascade-deletes documents", async () => {
+  let books = await Book.find(),
+    authors = await Author.find();
+
+  expect(books.map(book => book.title)).toEqual([
+    "Team of Rivals",
+    "Emma",
+    "Harry Potter"
+  ]);
+  expect(authors.map(author => author.name)).toEqual([
+    "Doris Kearns Goodwin",
+    "Jane Austen",
+    "J.K. Rowling"
+  ]);
+
+  await Author.delete({ name: "Jane Austen" });
+
+  books = await Book.find();
+  authors = await Author.find();
+
+  expect(books.map(book => book.title)).toEqual([
+    "Team of Rivals",
+    "Harry Potter"
+  ]);
+  expect(authors.map(author => author.name)).toEqual([
+    "Doris Kearns Goodwin",
+    "J.K. Rowling"
+  ]);
+  expect(authors[1].favoriteBooks.map(id => id.toHexString())).toEqual([
+    books[0]._id.toHexString()
+  ]);
+});
+
+it("correctly parses selectors", async () => {
   const predicateSample = () => true;
   const s1 = select``;
   const s2 = select`label`;
