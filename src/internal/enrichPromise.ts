@@ -15,14 +15,6 @@ import {
 // Used as a contract for promises with advanced Rongo-specific methods
 
 export type RichPromise<S extends Selectable<Document>> = Promise<S> & {
-  select<K extends S extends Array<infer U> ? keyof U : never>(
-    selector: K,
-    options?: SelectionOption
-  ): Promise<S extends Array<infer U> ? Array<U[K]> : never>;
-  select<K extends keyof S>(
-    selector: K,
-    options?: SelectionOption
-  ): Promise<S[K]>;
   select(selector: string | Selector, options?: SelectionOption): Promise<any>;
   select(
     chunks: TemplateStringsArray,
