@@ -30,7 +30,10 @@ export class Rongo {
 
   constructor(
     uri: string | Promise<string>,
-    options?: MongoClientOptions & { schema?: Schema | string }
+    {
+      schema,
+      ...options
+    }: MongoClientOptions & { schema?: Schema | string } = {}
   ) {
     this.client = Promise.resolve(uri).then(uri =>
       MongoClient.connect(uri, {
@@ -46,7 +49,7 @@ export class Rongo {
       return client.db(dbName);
     });
     this.graph = Object.create(null);
-    if (options?.schema) this.schema(options.schema);
+    if (schema) this.schema(schema);
     this.isConnected = false;
     this.client.then(client => {
       this.isConnected = client.isConnected();
