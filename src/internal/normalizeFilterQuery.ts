@@ -22,9 +22,9 @@ export async function normalizeFilterQuery<T extends Document>(
         const key = stackToKey(stack);
         // Get the foreign key config if one exists :
         const foreignKeyConfig = collection.foreignKeys[key];
-        // If we're at a foreign key location :
+        // If we're not at a foreign key location, quit early :
         if (!foreignKeyConfig) return;
-        // Get the foreign collection :
+        // Otherwise, get the foreign collection :
         const foreignCol = collection.rongo.collection(
           foreignKeyConfig.collection
         );
