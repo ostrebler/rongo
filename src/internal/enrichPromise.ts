@@ -76,7 +76,7 @@ type EatSpace<Input extends string> = Input extends `${Space}${infer Rest}`
   ? EatSpace<Rest>
   : Input;
 
-type ParseIdentifier<
+type EatIdentifier<
   Input extends string,
   Id extends string = ""
 > = Input extends `${infer Char}${infer Rest}`
@@ -84,7 +84,7 @@ type ParseIdentifier<
     ? Id extends ""
       ? ParseError<`${Input} doesn't contain an identifier`>
       : [Id, Input]
-    : ParseIdentifier<Rest, `${Id}${Char}`>
+    : EatIdentifier<Rest, `${Id}${Char}`>
   : Id extends ""
   ? ParseError<`Empty string doesn't contain an identifier`>
   : [Id, Input];
@@ -111,25 +111,21 @@ type ProcessShortcut<Type, Input extends string> = ParseExpr<
     : never
   : never;
 
-type ProcessHardMap<Type, Rest extends string> = Type extends Array<infer U>
+type ProcessMap<
+  Type,
+  Rest extends string,
+  Hard extends boolean = false
+> = Type extends Array<infer U>
   ? ParseExpr<U, Rest> extends infer Result
     ? Result extends ParseError
       ? Result
       : Result extends [infer Value, infer Rest]
-      ? [FlatArray<Value>, Rest]
+      ? [Hard extends true ? Array<Value> : FlatArray<Value>, Rest]
       : never
     : never
-  : ParseError<"Can't hard-map ($$) a non-array value">;
-
-type ProcessMap<Type, Rest extends string> = Type extends Array<infer U>
-  ? ParseExpr<U, Rest> extends infer Result
-    ? Result extends ParseError
-      ? Result
-      : Result extends [infer Value, infer Rest]
-      ? [Array<Value>, Rest]
-      : never
-    : never
-  : ParseError<"Can't map ($) a non-array value">;
+  : ParseError<`Can't ${Hard extends true
+      ? "hard-"
+      : ""}map a non-array value`>;
 
 type ParseTupleSelector<
   Type,
@@ -155,7 +151,7 @@ type ParseObjectSelector<
   ? ParseExpr<Type, `$ ${Input}`>
   : Type extends object
   ? EatSpace<Input> extends `${infer Input}`
-    ? ParseIdentifier<Input> extends [`${infer Id}`, `${infer Rest}`]
+    ? EatIdentifier<Input> extends [`${infer Id}`, `${infer Rest}`]
       ? Id extends keyof Type
         ? ParseExpr<Type[Id], Rest> extends infer Result
           ? Result extends ParseError
@@ -193,19 +189,19 @@ type ParseExpr<
   Type,
   Input extends string
 > = EatSpace<Input> extends `${infer Input}`
-  ? ParseIdentifier<Input> extends [`${infer Id}`, `${infer Rest}`] // Is field or index selector
+  ? EatIdentifier<Input> extends [`${infer Id}`, `${infer Rest}`] // Is field or index selector
     ? ProcessFieldOrIndex<Type, Input, Id, Rest>
     : Input extends `>${infer Rest}` // Is shortcut selector
     ? ProcessShortcut<Type, Rest>
     : Input extends `$$${infer Rest}` // Is hardmap selector
-    ? ProcessHardMap<Type, Rest>
+    ? ProcessMap<Type, Rest, true>
     : Input extends `$${infer Rest}` // Is map selector
     ? ProcessMap<Type, Rest>
-    : Input extends `[${infer Rest}`
+    : Input extends `[${infer Rest}` // Is tuple selector
     ? ParseTupleSelector<Type, Rest>
-    : Input extends `{${infer Rest}`
+    : Input extends `{${infer Rest}` // Is object selector
     ? ParseObjectSelector<Type, Rest>
-    : [Type, Input]
+    : [Type, Input] // Is identity selector
   : never;
 
 type ParseSelector<Type, Input extends string> = ParseExpr<
@@ -221,7 +217,7 @@ type ParseSelector<Type, Input extends string> = ParseExpr<
     : never
   : never;
 
-type C = ParseSelector<{ a: null | { b: number } }, "{* > b}">;
+type C = ParseSelector<{ a: string; b: number }, "{*}">;
 
 type D = ParseSelector<
   { a: { b: Array<{ c: boolean }> } | null; d: number },
@@ -229,3 +225,5 @@ type D = ParseSelector<
 >;
 
 type E = ParseSelector<{ a: { b: { c: boolean } } | null }, "a > b c">;
+
+type F = ParseSelector<Array<{ a: Array<{ b: boolean }> }>, " a b">;
