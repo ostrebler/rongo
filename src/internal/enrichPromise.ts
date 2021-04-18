@@ -69,6 +69,7 @@ export function enrichPromise<T extends Document, S extends Selectable<T>>(
 
 type Space = " " | "\n" | ".";
 type Stop = Space | ">" | "$" | "[" | "]" | "{" | "}" | "," | "?" | ":" | "*";
+
 type FlatArray<T> = Array<T extends Array<infer U> ? U : T>;
 type ParseError<T extends string = string> = { _error: T };
 
