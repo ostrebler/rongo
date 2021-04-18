@@ -213,7 +213,7 @@ export class MapSelector extends Selector {
   ) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
-    if (!isArray(value)) throw new Error("Can't map ($) a non-array value");
+    if (!isArray(value)) throw new Error("Can't map a non-array value");
     // Flat-map the items to subselections :
     return flatten(
       await Promise.all(
@@ -247,8 +247,7 @@ export class HardMapSelector extends Selector {
   ) {
     // All items are needed, so if it's a lazy array of documents, fetch them :
     if (value instanceof LazyDocuments) value = await value.fetch();
-    if (!isArray(value))
-      throw new Error("Can't hard-map ($$) a non-array value");
+    if (!isArray(value)) throw new Error("Can't map a non-array value");
     // Map the items to subselections :
     return Promise.all(
       value.map((item, index) =>
