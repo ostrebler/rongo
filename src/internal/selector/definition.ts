@@ -92,6 +92,12 @@ export class FieldSelector extends Selector {
         `Can't resolve field <${this.field}> in primitive value <${value}>`
       );
 
+    // The property has to exist :
+    if (!value.hasOwnProperty(this.field))
+      throw new Error(
+        `Can't resolve field <${this.field}> in object, no such property`
+      );
+
     value = (value as any)[this.field];
     stack = [...stack, this.field];
 
