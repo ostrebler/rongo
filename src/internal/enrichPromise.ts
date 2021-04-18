@@ -68,7 +68,7 @@ export function enrichPromise<T extends Document, S extends Selectable<T>>(
 //////////////////////////////////////////////////////////////////////////////////////
 
 type Space = " " | "\n" | ".";
-type Stop = Space | ">" | "$" | "[" | "]" | "{" | "}" | "," | "?" | ":";
+type Stop = Space | ">" | "$" | "[" | "]" | "{" | "}" | "," | "?" | ":" | "*";
 type FlatArray<T> = Array<T extends Array<infer U> ? U : T>;
 type ParseError<T extends string = string> = { _error: T };
 
@@ -131,7 +131,7 @@ type ProcessMap<Type, Rest extends string> = Type extends Array<infer U>
     : never
   : ParseError<"Can't map ($) a non-array value">;
 
-type ParseTupleItems<
+type ParseTupleSelector<
   Type,
   Input extends string,
   Tuple extends Array<any> = []
@@ -139,24 +139,55 @@ type ParseTupleItems<
   ? Result extends ParseError
     ? Result
     : Result extends [infer Value, `${infer Rest}`]
-    ? EatSpace<Rest> extends `,${infer Rest2}`
-      ? ParseTupleItems<Type, Rest2, [...Tuple, Value]>
-      : [[...Tuple, Value], Rest]
-    : never
-  : never;
-
-type ParseTupleSelector<Type, Input extends string> = ParseTupleItems<
-  Type,
-  Input
-> extends infer Result
-  ? Result extends ParseError
-    ? Result
-    : Result extends [infer Value, `${infer Rest}`]
-    ? EatSpace<Rest> extends `]${infer Rest}`
-      ? [Value, Rest]
+    ? EatSpace<Rest> extends `,${infer Rest}`
+      ? ParseTupleSelector<Type, Rest, [...Tuple, Value]>
+      : EatSpace<Rest> extends `]${infer Rest}`
+      ? [[...Tuple, Value], Rest]
       : ParseError<"Missing tuple closing">
     : never
   : never;
+
+type ParseObjectSelector<
+  Type,
+  Input extends string,
+  Obj extends Record<string, any> = {}
+> = Type extends Array<any>
+  ? ParseExpr<Type, `$ ${Input}`>
+  : Type extends object
+  ? EatSpace<Input> extends `${infer Input}`
+    ? ParseIdentifier<Input> extends [`${infer Id}`, `${infer Rest}`]
+      ? Id extends keyof Type
+        ? ParseExpr<Type[Id], Rest> extends infer Result
+          ? Result extends ParseError
+            ? Result
+            : Result extends [infer Value, `${infer Rest}`]
+            ? EatSpace<Rest> extends `,${infer Rest}`
+              ? ParseObjectSelector<Type, Rest, Obj & { [k in Id]: Value }>
+              : EatSpace<Rest> extends `}${infer Rest}`
+              ? [Obj & { [k in Id]: Value }, Rest]
+              : ParseError<"Missing object closing">
+            : never
+          : never
+        : ParseError<`Can't resolve field or index [${Id}]`>
+      : Input extends `*${infer Rest}`
+      ? ParseExpr<Type[keyof Type], Rest> extends infer Result
+        ? Result extends ParseError
+          ? Result
+          : Result extends [infer Value, `${infer Rest}`]
+          ? EatSpace<Rest> extends `,${infer Rest}`
+            ? ParseObjectSelector<
+                Type,
+                Rest,
+                Obj & { [k in keyof Type]: Value }
+              >
+            : EatSpace<Rest> extends `}${infer Rest}`
+            ? [Obj & { [k in keyof Type]: Value }, Rest]
+            : ParseError<"Missing object closing">
+          : never
+        : never
+      : ParseError<"Object subselections must start with a field or wildcard selector">
+    : never
+  : ParseError<"Can't resolve object selector in primitive value">;
 
 type ParseExpr<
   Type,
@@ -172,6 +203,8 @@ type ParseExpr<
     ? ProcessMap<Type, Rest>
     : Input extends `[${infer Rest}`
     ? ParseTupleSelector<Type, Rest>
+    : Input extends `{${infer Rest}`
+    ? ParseObjectSelector<Type, Rest>
     : [Type, Input]
   : never;
 
@@ -188,7 +221,7 @@ type ParseSelector<Type, Input extends string> = ParseExpr<
     : never
   : never;
 
-type C = ParseSelector<{ a: number }, "[a, a, , a, a]">;
+type C = ParseSelector<{ a: null | { b: number } }, "{* > b}">;
 
 type D = ParseSelector<
   { a: { b: Array<{ c: boolean }> } | null; d: number },
