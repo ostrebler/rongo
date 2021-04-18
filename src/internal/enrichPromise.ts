@@ -62,3 +62,137 @@ export function enrichPromise<T extends Document, S extends Selectable<T>>(
   });
   return richPromise;
 }
+
+// Workspace :
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+type Space = " " | "\n" | ".";
+type Stop = Space | ">" | "$" | "[" | "]" | "{" | "}" | "," | "?" | ":";
+type FlatArray<T> = Array<T extends Array<infer U> ? U : T>;
+type ParseError<T extends string = string> = { _error: T };
+
+type EatSpace<Input extends string> = Input extends `${Space}${infer Rest}`
+  ? EatSpace<Rest>
+  : Input;
+
+type ParseIdentifier<
+  Input extends string,
+  Id extends string = ""
+> = Input extends `${infer Char}${infer Rest}`
+  ? Char extends Stop
+    ? Id extends ""
+      ? ParseError<`${Input} doesn't contain an identifier`>
+      : [Id, Input]
+    : ParseIdentifier<Rest, `${Id}${Char}`>
+  : Id extends ""
+  ? ParseError<`Empty string doesn't contain an identifier`>
+  : [Id, Input];
+
+type ProcessFieldOrIndex<
+  Type,
+  Input extends string,
+  Id extends string,
+  Rest extends string
+> = Type extends Array<any>
+  ? ParseExpr<Type, `$ ${Input}`>
+  : Id extends keyof Type
+  ? ParseExpr<Type[Id], Rest>
+  : ParseError<`Can't resolve field or index [${Id}]`>;
+
+type ProcessShortcut<Type, Input extends string> = ParseExpr<
+  Exclude<Type, null | undefined>,
+  Input
+> extends infer Result
+  ? Result extends ParseError
+    ? Result
+    : Result extends [infer Value, infer Rest]
+    ? [Extract<Type, null | undefined> | Value, Rest]
+    : never
+  : never;
+
+type ProcessHardMap<Type, Rest extends string> = Type extends Array<infer U>
+  ? ParseExpr<U, Rest> extends infer Result
+    ? Result extends ParseError
+      ? Result
+      : Result extends [infer Value, infer Rest]
+      ? [FlatArray<Value>, Rest]
+      : never
+    : never
+  : ParseError<"Can't hard-map ($$) a non-array value">;
+
+type ProcessMap<Type, Rest extends string> = Type extends Array<infer U>
+  ? ParseExpr<U, Rest> extends infer Result
+    ? Result extends ParseError
+      ? Result
+      : Result extends [infer Value, infer Rest]
+      ? [Array<Value>, Rest]
+      : never
+    : never
+  : ParseError<"Can't map ($) a non-array value">;
+
+type ParseTupleItems<
+  Type,
+  Input extends string,
+  Tuple extends Array<any> = []
+> = ParseExpr<Type, Input> extends infer Result
+  ? Result extends ParseError
+    ? Result
+    : Result extends [infer Value, `${infer Rest}`]
+    ? EatSpace<Rest> extends `,${infer Rest2}`
+      ? ParseTupleItems<Type, Rest2, [...Tuple, Value]>
+      : [[...Tuple, Value], Rest]
+    : never
+  : never;
+
+type ParseTupleSelector<Type, Input extends string> = ParseTupleItems<
+  Type,
+  Input
+> extends infer Result
+  ? Result extends ParseError
+    ? Result
+    : Result extends [infer Value, `${infer Rest}`]
+    ? EatSpace<Rest> extends `]${infer Rest}`
+      ? [Value, Rest]
+      : ParseError<"Missing tuple closing">
+    : never
+  : never;
+
+type ParseExpr<
+  Type,
+  Input extends string
+> = EatSpace<Input> extends `${infer Input}`
+  ? ParseIdentifier<Input> extends [`${infer Id}`, `${infer Rest}`] // Is field or index selector
+    ? ProcessFieldOrIndex<Type, Input, Id, Rest>
+    : Input extends `>${infer Rest}` // Is shortcut selector
+    ? ProcessShortcut<Type, Rest>
+    : Input extends `$$${infer Rest}` // Is hardmap selector
+    ? ProcessHardMap<Type, Rest>
+    : Input extends `$${infer Rest}` // Is map selector
+    ? ProcessMap<Type, Rest>
+    : Input extends `[${infer Rest}`
+    ? ParseTupleSelector<Type, Rest>
+    : [Type, Input]
+  : never;
+
+type ParseSelector<Type, Input extends string> = ParseExpr<
+  Type,
+  Input
+> extends infer Result
+  ? Result extends ParseError
+    ? Result
+    : Result extends [infer Value, `${infer Rest}`]
+    ? EatSpace<Rest> extends ""
+      ? Value
+      : ParseError<"Incomplete selector parsing">
+    : never
+  : never;
+
+type C = ParseSelector<{ a: number }, "[a, a, , a, a]">;
+
+type D = ParseSelector<
+  { a: { b: Array<{ c: boolean }> } | null; d: number },
+  "[a> b c ]  "
+>;
+
+type E = ParseSelector<{ a: { b: { c: boolean } } | null }, "a > b c">;
