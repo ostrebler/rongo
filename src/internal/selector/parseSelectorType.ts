@@ -1,5 +1,17 @@
 import { ObjectID } from "../.";
 
+// Futur work :
+
+type ForeignKey<Key, Document extends object> = {
+  _foreignKey: true;
+  key: Key;
+  document: Document;
+};
+
+type A = ForeignKey<number, {}> extends ForeignKey<infer Key, infer Document>
+  ? [Key, Document]
+  : never;
+
 // Tests :
 
 type Expect<Test extends Check, Check> = true;
@@ -91,23 +103,23 @@ type ParseExpr<
   Input extends string
 > = EatSpace<Input> extends `${infer Input}`
   ? EatField<Input> extends [`${infer Field}`, `${infer Input}`]
-    ? ProcessField<Type, Input, Field>
+    ? ParseField<Type, Input, Field>
     : EatIndex<Input> extends [`${infer Index}`, `${infer Input}`]
-    ? ProcessIndex<Type, Input, Index>
+    ? ParseIndex<Type, Input, Index>
     : Input extends `>${infer Input}`
-    ? ProcessShortcut<Type, Input>
+    ? ParseShortcut<Type, Input>
     : Input extends `$$${infer Input}`
-    ? ProcessMap<Type, Input, true>
+    ? ParseMap<Type, Input, true>
     : Input extends `$${infer Input}`
-    ? ProcessMap<Type, Input>
+    ? ParseMap<Type, Input>
     : Input extends `[${infer Input}`
-    ? ProcessTuple<Type, Input>
+    ? ParseTuple<Type, Input>
     : Input extends `{${infer Input}`
-    ? ProcessObject<Type, Input>
+    ? ParseObject<Type, Input>
     : [Type, Input]
   : never;
 
-type ProcessField<Type, Input extends string, Field extends string> = [
+type ParseField<Type, Input extends string, Field extends string> = [
   Type
 ] extends [Array<any>]
   ? ParseExpr<Type, `$ ${Field} ${Input}`>
@@ -117,13 +129,13 @@ type ProcessField<Type, Input extends string, Field extends string> = [
     : ParseError<`Can't resolve field <${Field}> in object, no such property`>
   : ParseError<`Can't resolve field <${Field}> in primitive value`>;
 
-type ProcessIndex<Type, Input extends string, Index extends string> = [
+type ParseIndex<Type, Input extends string, Index extends string> = [
   Type
 ] extends [Array<any>]
   ? ParseExpr<Type[number], Input>
   : ParseError<`Can't resolve index <${Index}> in non-array value`>;
 
-type ProcessShortcut<Type, Input extends string> = ParseExpr<
+type ParseShortcut<Type, Input extends string> = ParseExpr<
   Exclude<Type, null | undefined>,
   Input
 > extends infer Result
@@ -134,7 +146,7 @@ type ProcessShortcut<Type, Input extends string> = ParseExpr<
     : never
   : never;
 
-type ProcessMap<Type, Input extends string, Hard extends boolean = false> = [
+type ParseMap<Type, Input extends string, Hard extends boolean = false> = [
   Type
 ] extends [Array<infer Element>]
   ? ParseExpr<Element, Input> extends infer Result
@@ -146,7 +158,7 @@ type ProcessMap<Type, Input extends string, Hard extends boolean = false> = [
     : never
   : ParseError<"Can't map a non-array value">;
 
-type ProcessTuple<
+type ParseTuple<
   Type,
   Input extends string,
   Tuple extends Array<any> = []
@@ -156,7 +168,7 @@ type ProcessTuple<
     : Result extends [infer OutType, `${infer Input}`]
     ? EatSpace<Input> extends `${infer Input}`
       ? Input extends `,${infer Input}`
-        ? ProcessTuple<Type, Input, [...Tuple, OutType]>
+        ? ParseTuple<Type, Input, [...Tuple, OutType]>
         : Input extends `]${infer Input}`
         ? [[...Tuple, OutType], Input]
         : ParseError<"Unexpected character, expected <,> or <]>">
@@ -164,11 +176,11 @@ type ProcessTuple<
     : never
   : never;
 
-type ProcessObject<
+type ParseObject<
   Type,
   Input extends string,
   Obj extends Record<string, any> = {}
-> = ParseError<"Not implemented">;
+> = ParseError<"Not implemented yet">;
 
 // "Eating" types :
 
