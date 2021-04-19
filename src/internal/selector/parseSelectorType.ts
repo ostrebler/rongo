@@ -49,6 +49,7 @@ type BookDb = {
 };
 
 type B = ParseSelector<null | { x: number }, "x">;
+type C = ParseSelector<Array<{ x: number }> | { y: string }, "x">;
 
 // Main parser types :
 
@@ -84,11 +85,9 @@ type ParseExpr<
     : [Type, Input]
   : never;
 
-type ProcessField<
-  Type,
-  Input extends string,
-  Field extends string
-> = Type extends Array<any>
+type ProcessField<Type, Input extends string, Field extends string> = [
+  Type
+] extends [Array<any>]
   ? ParseExpr<Type, `$ ${Field} ${Input}`>
   : [Type] extends [object]
   ? Field extends keyof Type
@@ -96,11 +95,9 @@ type ProcessField<
     : ParseError<`Can't resolve field <${Field}> in object, no such property`>
   : ParseError<`Can't resolve field <${Field}> in primitive value`>;
 
-type ProcessIndex<
-  Type,
-  Input extends string,
-  Index extends string
-> = Type extends Array<any>
+type ProcessIndex<Type, Input extends string, Index extends string> = [
+  Type
+] extends [Array<any>]
   ? ParseExpr<Type[number], Input>
   : ParseError<`Can't resolve index <${Index}> in non-array value`>;
 
@@ -108,20 +105,18 @@ type ProcessShortcut<Type, Input extends string> = ParseExpr<
   Exclude<Type, null | undefined>,
   Input
 > extends infer Result
-  ? IsError<Result> extends true
+  ? Result extends ParseError
     ? Result
     : Result extends [infer OutType, infer Input]
     ? [Extract<Type, null | undefined> | OutType, Input]
     : never
   : never;
 
-type ProcessMap<
-  Type,
-  Input extends string,
-  Hard extends boolean = false
-> = Type extends Array<infer Element>
+type ProcessMap<Type, Input extends string, Hard extends boolean = false> = [
+  Type
+] extends [Array<infer Element>]
   ? ParseExpr<Element, Input> extends infer Result
-    ? IsError<Result> extends true
+    ? Result extends ParseError
       ? Result
       : Result extends [infer OutType, infer Input]
       ? [Hard extends true ? Array<OutType> : FlatArray<OutType>, Input]
@@ -134,7 +129,7 @@ type ProcessTuple<
   Input extends string,
   Tuple extends Array<any> = []
 > = ParseExpr<Type, Input> extends infer Result
-  ? IsError<Result> extends true
+  ? Result extends ParseError
     ? Result
     : Result extends [infer OutType, `${infer Input}`]
     ? EatSpace<Input> extends `${infer Input}`
@@ -164,12 +159,6 @@ type EatField<Input extends string> = EatOneOrMore<
 type EatIndex<Input extends string> = EatOneOrMore<Input, Digit>;
 
 // Helpers :
-
-type IsError<Error> = [Extract<Error, ParseError>] extends [never]
-  ? false
-  : true;
-
-type Fail<Error> = Extract<Error, ParseError>;
 
 type FlatArray<Element> = Array<
   Element extends Array<infer Element> ? Element : Element
