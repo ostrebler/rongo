@@ -12,6 +12,26 @@ type Test = Expect<ParseSelector<BookDb, " .\t title \v ">, string> &
   Expect<ParseSelector<Array<BookDb>, "12">, BookDb> &
   Expect<ParseSelector<BookDb | null, " >.title ">, string | null> &
   Expect<
+    ParseSelector<{ a?: Array<BookDb> }, " a > title">,
+    undefined | string[]
+  > &
+  Expect<
+    ParseSelector<{ a: Array<BookDb | null> }, " a $> title">,
+    Array<string | null>
+  > &
+  Expect<
+    ParseSelector<{ a: Array<BookDb | null> }, " a > title">,
+    ParseError<`Can't resolve field <title> in primitive value`>
+  > &
+  Expect<
+    ParseSelector<BookDb, string>,
+    ParseError<"Only string literal types can be parsed">
+  > &
+  Expect<
+    ParseSelector<BookDb | null, "title">,
+    ParseError<"Can't resolve field <title> in primitive value">
+  > &
+  Expect<
     ParseSelector<Array<AuthorDb | null>, " 0 > favoriteBooks ">,
     Array<ObjectID> | null
   > &
@@ -26,6 +46,10 @@ type Test = Expect<ParseSelector<BookDb, " .\t title \v ">, string> &
   Expect<
     ParseSelector<{ b: BookDb }, "b.titlez">,
     ParseError<`Can't resolve field <titlez> in object, no such property`>
+  > &
+  Expect<
+    ParseSelector<Array<BookDb> | BookDb, "title">,
+    ParseError<"Can't resolve field <title> in object, no such property">
   > &
   Expect<
     ParseSelector<BookDb, "12">,
@@ -48,15 +72,11 @@ type BookDb = {
   author: ObjectID;
 };
 
-type B = ParseSelector<null | { x: number }, "x">;
-type C = ParseSelector<Array<{ x: number }> | { y: string }, "x">;
-
 // Main parser types :
 
-export type ParseSelector<Type, Input extends string> = ParseExpr<
-  Type,
-  Input
-> extends infer Result
+export type ParseSelector<Type, Input extends string> = string extends Input
+  ? ParseError<"Only string literal types can be parsed">
+  : ParseExpr<Type, Input> extends infer Result
   ? Result extends ParseError
     ? Result
     : Result extends [infer OutType, `${infer Input}`]
@@ -82,6 +102,8 @@ type ParseExpr<
     ? ProcessMap<Type, Input>
     : Input extends `[${infer Input}`
     ? ProcessTuple<Type, Input>
+    : Input extends `{${infer Input}`
+    ? ProcessObject<Type, Input>
     : [Type, Input]
   : never;
 
@@ -141,6 +163,12 @@ type ProcessTuple<
       : never
     : never
   : never;
+
+type ProcessObject<
+  Type,
+  Input extends string,
+  Obj extends Record<string, any> = {}
+> = ParseError<"Not implemented">;
 
 // "Eating" types :
 
