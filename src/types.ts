@@ -63,6 +63,24 @@ export enum DeletePolicy {
 
 export type Document = object;
 
+// The general type constraint for graph-documents
+
+export type GraphDocument = object;
+
+// Used to tell TypeScript about primary keys
+
+export type PrimaryKey<T> = {
+  _primaryKey: true;
+  type: T;
+};
+
+// Used to tell TypeScript about foreign keys
+
+export type ForeignKey<T extends GraphDocument> = {
+  _foreignKey: true;
+  document: T;
+};
+
 // Used to locate a key with precision
 
 export type Path = Array<string>;

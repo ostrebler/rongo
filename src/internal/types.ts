@@ -1,3 +1,5 @@
+import { ForeignKey, PrimaryKey } from "../.";
+
 // Used internally to keep track of the current location during object traversals :
 
 export type Stack = Array<string | number>;
@@ -39,3 +41,23 @@ export type DanglingKeys = {
     [foreignKey: string]: Array<any>;
   };
 };
+
+// Used to find the primary key of a document
+
+export type PrimaryKeyOf<T> = T extends PrimaryKey<infer Type>
+  ? Type
+  : T extends ForeignKey<any>
+  ? never
+  : T extends object
+  ? PrimaryKeyOf<T[keyof T]>
+  : never;
+
+// Used to transform a rich document type into a plain document type
+
+export type DocumentOf<T> = T extends PrimaryKey<infer Type>
+  ? Type
+  : T extends ForeignKey<infer Document>
+  ? PrimaryKeyOf<Document>
+  : T extends object
+  ? { [K in keyof T]: DocumentOf<T[K]> }
+  : T;
