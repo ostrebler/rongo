@@ -1,31 +1,41 @@
-import { ObjectID } from "../.";
-
-// Futur work :
-
-type ForeignKey<Key, Document extends object> = {
-  _foreignKey: true;
-  key: Key;
-  document: Document;
-};
-
-type A = ForeignKey<number, {}> extends ForeignKey<infer Key, infer Document>
-  ? [Key, Document]
-  : never;
+import {
+  DocumentOf,
+  ForeignKey,
+  ObjectID,
+  PrimaryKey,
+  PrimaryKeyOf
+} from "../../.";
 
 // Tests :
 
-type Expect<Test extends Check, Check> = true;
+type AuthorDb = {
+  _id: PrimaryKey<ObjectID>;
+  name: string;
+  favoriteBooks: Array<ForeignKey<BookDb>>;
+};
+
+type BookDb = {
+  _id: PrimaryKey<ObjectID>;
+  title: string;
+  author: ForeignKey<AuthorDb>;
+};
+
+type Expect<Test extends Check, Check> = [Check] extends [Test] ? true : false;
 
 type Test = Expect<ParseSelector<BookDb, " .\t title \v ">, string> &
-  Expect<ParseSelector<AuthorDb, " .\n ">, AuthorDb> &
-  Expect<ParseSelector<BookDb, "author">, ObjectID> &
-  Expect<ParseSelector<AuthorDb, "favoriteBooks 1">, ObjectID> &
+  Expect<ParseSelector<AuthorDb, " .\n ">, DocumentOf<AuthorDb>> &
+  Expect<ParseSelector<BookDb, "author">, DocumentOf<AuthorDb>> &
+  Expect<ParseSelector<AuthorDb, "favoriteBooks 1 title">, string> &
   Expect<ParseSelector<{ a: AuthorDb }, "a name">, string> &
-  Expect<ParseSelector<Array<BookDb>, "12">, BookDb> &
+  Expect<ParseSelector<Array<BookDb>, "12">, DocumentOf<BookDb>> &
   Expect<ParseSelector<BookDb | null, " >.title ">, string | null> &
   Expect<
     ParseSelector<{ a?: Array<BookDb> }, " a > title">,
     undefined | string[]
+  > &
+  Expect<
+    ParseSelector<{ field: Array<ForeignKey<AuthorDb> | null> }, "field">,
+    Array<DocumentOf<AuthorDb> | null>
   > &
   Expect<
     ParseSelector<{ a: Array<BookDb | null> }, " a $> title">,
@@ -45,7 +55,7 @@ type Test = Expect<ParseSelector<BookDb, " .\t title \v ">, string> &
   > &
   Expect<
     ParseSelector<Array<AuthorDb | null>, " 0 > favoriteBooks ">,
-    Array<ObjectID> | null
+    Array<DocumentOf<BookDb>> | null
   > &
   Expect<
     ParseSelector<BookDb, " title . x">,
@@ -72,18 +82,6 @@ type Test = Expect<ParseSelector<BookDb, " .\t title \v ">, string> &
     ParseError<"Incomplete selector parsing, please refer to the syntax specification in the doc">
   >;
 
-type AuthorDb = {
-  _id: ObjectID;
-  name: string;
-  favoriteBooks: Array<ObjectID>;
-};
-
-type BookDb = {
-  _id: ObjectID;
-  title: string;
-  author: ObjectID;
-};
-
 // Main parser types :
 
 export type ParseSelector<Type, Input extends string> = string extends Input
@@ -93,7 +91,7 @@ export type ParseSelector<Type, Input extends string> = string extends Input
     ? Result
     : Result extends [infer OutType, `${infer Input}`]
     ? EatSpace<Input> extends ""
-      ? OutType
+      ? DocumentOf<OutType>
       : ParseError<"Incomplete selector parsing, please refer to the syntax specification in the doc">
     : never
   : never;
@@ -101,22 +99,24 @@ export type ParseSelector<Type, Input extends string> = string extends Input
 type ParseExpr<
   Type,
   Input extends string
-> = EatSpace<Input> extends `${infer Input}`
-  ? EatField<Input> extends [`${infer Field}`, `${infer Input}`]
-    ? ParseField<Type, Input, Field>
-    : EatIndex<Input> extends [`${infer Index}`, `${infer Input}`]
-    ? ParseIndex<Type, Input, Index>
-    : Input extends `>${infer Input}`
-    ? ParseShortcut<Type, Input>
-    : Input extends `$$${infer Input}`
-    ? ParseMap<Type, Input, true>
-    : Input extends `$${infer Input}`
-    ? ParseMap<Type, Input>
-    : Input extends `[${infer Input}`
-    ? ParseTuple<Type, Input>
-    : Input extends `{${infer Input}`
-    ? ParseObject<Type, Input>
-    : [Type, Input]
+> = ResolveType<Type> extends infer Type
+  ? EatSpace<Input> extends `${infer Input}`
+    ? EatField<Input> extends [`${infer Field}`, `${infer Input}`]
+      ? ParseField<Type, Input, Field>
+      : EatIndex<Input> extends [`${infer Index}`, `${infer Input}`]
+      ? ParseIndex<Type, Input, Index>
+      : Input extends `>${infer Input}`
+      ? ParseShortcut<Type, Input>
+      : Input extends `$$${infer Input}`
+      ? ParseMap<Type, Input, true>
+      : Input extends `$${infer Input}`
+      ? ParseMap<Type, Input>
+      : Input extends `[${infer Input}`
+      ? ParseTuple<Type, Input>
+      : Input extends `{${infer Input}`
+      ? ParseObject<Type, Input>
+      : [Type, Input]
+    : never
   : never;
 
 type ParseField<Type, Input extends string, Field extends string> = [
@@ -207,6 +207,19 @@ type FlatArray<Element> = Array<
 type ParseError<Message extends string = string> = {
   _error: Message;
 };
+
+type ResolveType<
+  Type,
+  Resolve extends boolean = true
+> = Type extends PrimaryKey<infer Type>
+  ? Type
+  : Type extends Array<infer Element>
+  ? Array<ResolveType<Element>>
+  : Type extends ForeignKey<infer Document>
+  ? Resolve extends true
+    ? Document
+    : PrimaryKeyOf<Document>
+  : Type;
 
 type EatOneOrMore<
   Input extends string,
