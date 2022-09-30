@@ -39,7 +39,7 @@ export async function findDanglingKeys(
         config.foreignKeys
       )) {
         // Get all values for that foreign key in the current batch :
-        let keys: Array<any> = await documents.select(foreignKey);
+        let keys: Array<any> = await documents.select(foreignKey, {resolveForeignKeys: false});
 
         // Remove nullish and repeated values :
         keys = uniqBy(
@@ -54,7 +54,7 @@ export async function findDanglingKeys(
             { [foreignCol.key]: { $in: keys } },
             { baseQuery: true, projection: { [foreignCol.key]: 1 } }
           )
-          .select(foreignCol.key);
+          .select(foreignCol.key, {resolveForeignKeys: false});
 
         // If there are any dangling values, signal them :
         const danglingKeys = differenceWith(
