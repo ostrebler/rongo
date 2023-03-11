@@ -1,12 +1,13 @@
 {
   "name": "rongo.js",
-  "version": "0.2.9",
-  "description": "A happy marriage between the relational and the NoSQL world. In short : MongoDB, but with relations.",
+  "version": "0.3.0",
+  "description": "MongoDB, but with collection relations: A happy marriage between the relational and the NoSQL world",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "tsc & jest --runInBand ./dist",
+    "test": "vitest run",
     "prepare": "yarn build"
   },
   "repository": {
@@ -32,22 +33,19 @@
     "url": "https://github.com/ostrebler/rongo/issues"
   },
   "homepage": "https://github.com/ostrebler/rongo#readme",
-  "dependencies": {
-    "ajv": "^7.2.3",
-    "lodash": "^4.17.21",
-    "mongodb": "^3.6.4",
-    "yaml": "^1.10.2"
-  },
-  "devDependencies": {
-    "@types/jest": "^26.0.21",
-    "@types/lodash": "^4.14.168",
-    "@types/mongodb": "^3.6.9",
-    "jest": "^26.6.3",
-    "prettier": "^2.2.1",
-    "typescript": "^4.2.3"
-  },
   "prettier": {
     "trailingComma": "none",
     "arrowParens": "avoid"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.6",
+    "@types/node": "^18.15.0",
+    "prettier": "^2.8.4",
+    "typescript": "^4.9.5",
+    "vitest": "^0.29.2"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "mongodb": "^5.1.0"
   }
 }
