@@ -6,6 +6,7 @@ import {
   ipv6Regex,
   isoDateRegex,
   JsonSchema,
+  UnionToTupleString,
   urlRegex,
   uuidRegex
 } from ".";
@@ -329,6 +330,7 @@ export class BsonString extends BsonAny {
 
 export type BsonObjectConfig<F extends Record<string, BsonAny>> = {
   fields: F;
+  strict?: boolean;
 };
 
 export class BsonObject<F extends Record<string, BsonAny>> extends BsonAny {
@@ -347,8 +349,27 @@ export class BsonObject<F extends Record<string, BsonAny>> extends BsonAny {
       required: keys(this.config.fields).filter(
         key => !(this.config.fields[key] instanceof BsonOptional)
       ),
-      properties: mapValues(this.config.fields, field => field.jsonSchema())
+      properties: mapValues(this.config.fields, field => field.jsonSchema()),
+      additionalProperties: !this.config.strict && undefined
     };
+  }
+
+  private extend(config: Partial<BsonObjectConfig<F>>) {
+    return new BsonObject({ ...this.config, ...config }, this.commonConfig);
+  }
+
+  keyof() {
+    return new BsonEnum({
+      values: keys(this.config.fields) as UnionToTupleString<keyof F>
+    });
+  }
+
+  strict() {
+    return this.extend({ strict: true });
+  }
+
+  passthrough() {
+    return this.extend({ strict: false });
   }
 }
 
@@ -460,7 +481,7 @@ export class BsonArray<T extends BsonAny> extends BsonAny {
 // BsonEnum
 
 export type BsonEnumConfig<T extends any[]> = {
-  values: T[];
+  values: T;
 };
 
 export class BsonEnum<T extends any[]> extends BsonAny {

@@ -20,6 +20,7 @@ import {
   BsonUnion,
   Infer
 } from ".";
+import { values } from "lodash-es";
 
 export const b = {
   objectId: () => new BsonObjectId(),
@@ -65,5 +66,15 @@ const a = b.object({
 });
 
 const d = b.javascript().nullable().or(b.objectId());
+const z = a.keyof();
 
 type C = Infer<typeof a, { machin: { x: string } }>;
+
+enum Test {
+  A = "a",
+  B = "b",
+  C = "c"
+}
+
+const w = b.enum(...values(Test));
+type W = Infer<typeof w, {}>;

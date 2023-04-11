@@ -21,9 +21,9 @@ import {
   BsonUnion
 } from ".";
 
-// Types
-
 export type JsonSchema = Record<string, any>;
+
+// Type inference from BSON schema
 
 export type Infer<
   BsonType extends BsonAny,
@@ -66,44 +66,64 @@ export type Infer<
   ? InferBsonIntersection<T, Cols>
   : unknown;
 
-export type InferBsonUnion<
+type InferBsonUnion<
   T extends BsonAny[],
   Cols extends Record<string, object>
 > = T extends [infer B extends BsonAny, ...infer R extends BsonAny[]]
   ? Infer<B, Cols> | InferBsonUnion<R, Cols>
   : never;
 
-export type InferBsonIntersection<
+type InferBsonIntersection<
   T extends BsonAny[],
   Cols extends Record<string, object>
 > = T extends [infer B extends BsonAny, ...infer R extends BsonAny[]]
   ? Infer<B, Cols> & InferBsonIntersection<R, Cols>
   : unknown;
 
-export type InferBsonReference<
+type InferBsonReference<
   T extends string,
   Cols extends Record<string, object>
 > = ObjectId | (T extends keyof Cols ? Cols[T] : never);
 
-export type InferBsonObject<
+type InferBsonObject<
   F extends Record<string, BsonAny>,
   Cols extends Record<string, object>
 > = AddQuestionMarks<{
   [K in keyof F]: Infer<F[K], Cols>;
 }>;
 
-export type AddQuestionMarks<
+type AddQuestionMarks<
   T extends object,
   D extends keyof T = DefinedKeys<T>
 > = SelfMapped<Pick<T, D> & Partial<Omit<T, D>>>;
 
-export type DefinedKeys<F extends object> = {
+type DefinedKeys<F extends object> = {
   [K in keyof F]: undefined extends F[K] ? never : K;
 }[keyof F];
 
-export type SelfMapped<T extends object> = {
+type SelfMapped<T extends object> = {
   [K in keyof T]: T[K];
 };
+
+// Utilities
+
+export type UnionToTupleString<T> = CastToStringTuple<UnionToTuple<T>>;
+
+type CastToStringTuple<T> = T extends [string, ...string[]] ? T : never;
+
+type UnionToTuple<T, Tuple extends unknown[] = []> = [T] extends [never]
+  ? Tuple
+  : UnionToTuple<Exclude<T, GetUnionLast<T>>, [GetUnionLast<T>, ...Tuple]>;
+
+type GetUnionLast<T> = UnionToIntersectionFn<T> extends () => infer Last
+  ? Last
+  : never;
+
+type UnionToIntersectionFn<T> = (
+  T extends unknown ? (k: () => T) => void : never
+) extends (k: infer Intersection) => void
+  ? Intersection
+  : never;
 
 // Constants
 
