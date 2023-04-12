@@ -7,6 +7,7 @@ import {
   BsonEnum,
   BsonIntersection,
   BsonJavascript,
+  BsonNot,
   BsonNull,
   BsonNumber,
   BsonNumberType,
@@ -17,10 +18,10 @@ import {
   BsonRegex,
   BsonString,
   BsonTimestamp,
+  BsonTuple,
   BsonUnion,
   Infer
 } from ".";
-import { values } from "lodash-es";
 
 export const b = {
   objectId: () => new BsonObjectId(),
@@ -46,35 +47,30 @@ export const b = {
         : { pattern: args[0], builder: args[1] }
     ),
   array: <T extends BsonAny>(builder: T) => new BsonArray({ builder }),
+  tuple: <T extends BsonAny[]>(...builders: T) =>
+    new BsonTuple<T, never>({ builders }),
+  literal: <T>(value: T) => new BsonEnum({ values: [value] as [T] }),
   enum: <T extends any[]>(...values: T) => new BsonEnum({ values }),
   reference: <T extends string>(collection: T) =>
     new BsonReference({ collection, deletePolicy: "bypass" }),
-  union: <T extends BsonAny[]>(...builders: T) =>
-    new BsonUnion({ type: "anyOf", builders }),
-  xunion: <T extends BsonAny[]>(...builders: T) =>
-    new BsonUnion({ type: "oneOf", builders }),
+  not: (builder: BsonAny) => new BsonNot({ builder }),
+  union: <T extends BsonAny[]>(...builders: T) => new BsonUnion({ builders }),
   intersection: <T extends BsonAny[]>(...builders: T) =>
     new BsonIntersection({ builders })
 };
 
 const a = b.object({
-  name: b.objectId().array().nullish(),
-  age: b.number().nullable().array().description(""),
-  truc: b.xunion(b.number(), b.string()),
-  machin: b.reference("machin").onDelete("cascade"),
-  code: b.javascript().nullable().or(b.objectId())
+  _id: b.objectId(),
+  name: b.string().optional(),
+  age: b.number().or(b.string()),
+  email: b.string().email(),
+  machin: b.reference("users"),
+  siblings: b.reference("users").array()
 });
 
-const d = b.javascript().nullable().or(b.objectId());
-const z = a.keyof();
-
-type C = Infer<typeof a, { machin: { x: string } }>;
-
-enum Test {
-  A = "a",
-  B = "b",
-  C = "c"
-}
-
-const w = b.enum(...values(Test));
-type W = Infer<typeof w, {}>;
+type A = Infer<
+  typeof a,
+  { users: typeof a },
+  "",
+  ["siblings.machin", "machin", "machin.machin.siblings"]
+>;

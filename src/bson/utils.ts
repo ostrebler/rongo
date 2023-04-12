@@ -8,6 +8,7 @@ import {
   BsonEnum,
   BsonIntersection,
   BsonJavascript,
+  BsonNot,
   BsonNull,
   BsonNumber,
   BsonObject,
@@ -18,6 +19,7 @@ import {
   BsonRegex,
   BsonString,
   BsonTimestamp,
+  BsonTuple,
   BsonUnion
 } from ".";
 
@@ -27,7 +29,9 @@ export type JsonSchema = Record<string, any>;
 
 export type Infer<
   BsonType extends BsonAny,
-  Cols extends Record<string, object>
+  Cols extends Record<string, BsonAny>,
+  Path extends string,
+  Resolve extends string[]
 > = BsonType extends BsonObjectId
   ? ObjectId
   : BsonType extends BsonNull
@@ -49,48 +53,95 @@ export type Infer<
   : BsonType extends BsonString
   ? string
   : BsonType extends BsonObject<infer F>
-  ? InferBsonObject<F, Cols>
+  ? InferBsonObject<F, Cols, Path, Resolve>
   : BsonType extends BsonRecord<infer T>
-  ? Record<string, Infer<T, Cols>>
+  ? Record<string, Infer<T, Cols, JoinPath<Path, string>, Resolve>>
   : BsonType extends BsonArray<infer T>
-  ? Infer<T, Cols>[]
+  ? Infer<T, Cols, Path, Resolve>[]
+  : BsonType extends BsonTuple<infer T, infer R>
+  ? InferBsonTuple<T, R, Cols, Path, Resolve>
   : BsonType extends BsonEnum<infer T>
   ? T[number]
   : BsonType extends BsonReference<infer T>
-  ? InferBsonReference<T, Cols>
+  ? InferBsonReference<T, Cols, Path, Resolve>
   : BsonType extends BsonOptional<infer T>
-  ? Infer<T, Cols> | undefined
+  ? Infer<T, Cols, Path, Resolve> | undefined
+  : BsonType extends BsonNot
+  ? any // would require subtraction types (any ~ T)
   : BsonType extends BsonUnion<infer T>
-  ? InferBsonUnion<T, Cols>
+  ? InferBsonUnion<T, Cols, Path, Resolve>
   : BsonType extends BsonIntersection<infer T>
-  ? InferBsonIntersection<T, Cols>
+  ? InferBsonIntersection<T, Cols, Path, Resolve>
   : unknown;
+
+type InferBsonObject<
+  F extends Record<string, BsonAny>,
+  Cols extends Record<string, BsonAny>,
+  Path extends string,
+  Resolve extends string[]
+> = AddQuestionMarks<{
+  [K in keyof F & string]: Infer<F[K], Cols, JoinPath<Path, K>, Resolve>;
+}>;
+
+type InferBsonTuple<
+  T extends BsonAny[],
+  R extends BsonAny,
+  Cols extends Record<string, BsonAny>,
+  Path extends string,
+  Resolve extends string[]
+> = T extends [infer B extends BsonAny, ...infer T2 extends BsonAny[]]
+  ? [
+      Infer<B, Cols, Path, Resolve>,
+      ...InferBsonTuple<T2, R, Cols, Path, Resolve>
+    ]
+  : [R] extends [never]
+  ? []
+  : Infer<R, Cols, Path, Resolve>[];
+
+type InferBsonReference<
+  T extends string,
+  Cols extends Record<string, BsonAny>,
+  Path extends string,
+  Resolve extends string[]
+> = PathMatch<Path, Resolve> extends true
+  ? T extends keyof Cols
+    ? Infer<Cols[T], Cols, Path, Resolve>
+    : never
+  : ObjectId;
 
 type InferBsonUnion<
   T extends BsonAny[],
-  Cols extends Record<string, object>
+  Cols extends Record<string, BsonAny>,
+  Path extends string,
+  Resolve extends string[]
 > = T extends [infer B extends BsonAny, ...infer R extends BsonAny[]]
-  ? Infer<B, Cols> | InferBsonUnion<R, Cols>
+  ? Infer<B, Cols, Path, Resolve> | InferBsonUnion<R, Cols, Path, Resolve>
   : never;
 
 type InferBsonIntersection<
   T extends BsonAny[],
-  Cols extends Record<string, object>
+  Cols extends Record<string, BsonAny>,
+  Path extends string,
+  Resolve extends string[]
 > = T extends [infer B extends BsonAny, ...infer R extends BsonAny[]]
-  ? Infer<B, Cols> & InferBsonIntersection<R, Cols>
+  ? Infer<B, Cols, Path, Resolve> &
+      InferBsonIntersection<R, Cols, Path, Resolve>
   : unknown;
 
-type InferBsonReference<
-  T extends string,
-  Cols extends Record<string, object>
-> = ObjectId | (T extends keyof Cols ? Cols[T] : never);
+// Utilities
 
-type InferBsonObject<
-  F extends Record<string, BsonAny>,
-  Cols extends Record<string, object>
-> = AddQuestionMarks<{
-  [K in keyof F]: Infer<F[K], Cols>;
-}>;
+type JoinPath<T extends string, U extends string> = `${T}${T extends ""
+  ? ""
+  : "."}${U}`;
+
+type PathMatch<
+  Path extends string,
+  Resolve extends string[]
+> = Resolve extends [infer R, ...infer Rest extends string[]]
+  ? R extends Path | `${Path}.${string}`
+    ? true
+    : PathMatch<Path, Rest>
+  : false;
 
 type AddQuestionMarks<
   T extends object,
@@ -104,8 +155,6 @@ type DefinedKeys<F extends object> = {
 type SelfMapped<T extends object> = {
   [K in keyof T]: T[K];
 };
-
-// Utilities
 
 export type UnionToTupleString<T> = CastToStringTuple<UnionToTuple<T>>;
 

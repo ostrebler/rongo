@@ -12,6 +12,7 @@ import {
 } from ".";
 
 export type BsonCommonConfig = {
+  title?: string;
   description?: string;
 };
 
@@ -21,6 +22,7 @@ export abstract class BsonAny {
   jsonSchema(): JsonSchema {
     return JSON.parse(
       JSON.stringify({
+        title: this.commonConfig?.title,
         description: this.commonConfig?.description,
         ...this._jsonSchema()
       })
@@ -29,10 +31,18 @@ export abstract class BsonAny {
 
   abstract _jsonSchema(): JsonSchema;
 
-  description(description: string) {
+  private extendBase(config: Partial<BsonCommonConfig>) {
     const copy = clone(this);
-    copy.commonConfig = { ...copy.commonConfig, description };
+    copy.commonConfig = { ...copy.commonConfig, ...config };
     return copy;
+  }
+
+  title(title: string) {
+    return this.extendBase({ title });
+  }
+
+  description(description: string) {
+    return this.extendBase({ description });
   }
 
   optional() {
@@ -40,7 +50,7 @@ export abstract class BsonAny {
   }
 
   nullable(): BsonUnion<[this, BsonNull]> {
-    return new BsonUnion({ type: "anyOf", builders: [this, new BsonNull()] });
+    return new BsonUnion({ builders: [this, new BsonNull()] });
   }
 
   nullish() {
@@ -55,12 +65,16 @@ export abstract class BsonAny {
     return new BsonArray({ builder: this });
   }
 
+  not() {
+    return new BsonNot({ builder: this });
+  }
+
   or<T extends BsonAny>(builder: T): BsonUnion<[this, T]> {
-    return new BsonUnion({ type: "anyOf", builders: [this, builder] });
+    return new BsonUnion({ builders: [this, builder] });
   }
 
   xor<T extends BsonAny>(builder: T): BsonUnion<[this, T]> {
-    return new BsonUnion({ type: "oneOf", builders: [this, builder] });
+    return new BsonUnion({ builders: [this, builder], exclusive: true });
   }
 
   and<T extends BsonAny>(builder: T): BsonIntersection<[this, T]> {
@@ -344,10 +358,11 @@ export class BsonObject<F extends Record<string, BsonAny>> extends BsonAny {
   }
 
   _jsonSchema() {
+    const isOptionalDeep = (field: BsonAny) => field instanceof BsonOptional;
     return {
       bsonType: "object",
       required: keys(this.config.fields).filter(
-        key => !(this.config.fields[key] instanceof BsonOptional)
+        key => !isOptionalDeep(this.config.fields[key])
       ),
       properties: mapValues(this.config.fields, field => field.jsonSchema()),
       additionalProperties: !this.config.strict && undefined
@@ -478,6 +493,38 @@ export class BsonArray<T extends BsonAny> extends BsonAny {
   }
 }
 
+// BsonTuple
+
+export type BsonTupleConfig<T extends BsonAny[], R extends BsonAny> = {
+  builders: T;
+  rest?: R;
+};
+
+export class BsonTuple<T extends BsonAny[], R extends BsonAny> extends BsonAny {
+  private _isBsonTuple!: true;
+
+  constructor(
+    public config: BsonTupleConfig<T, R>,
+    commonConfig?: BsonCommonConfig
+  ) {
+    super(commonConfig);
+  }
+
+  _jsonSchema() {
+    return {
+      bsonType: "array",
+      minItems: this.config.builders.length,
+      maxItems: this.config.rest ? undefined : this.config.builders.length,
+      items: this.config.builders.map(builder => builder.jsonSchema()),
+      additionalItems: this.config.rest && this.config.rest.jsonSchema()
+    };
+  }
+
+  rest<R extends BsonAny>(rest: R) {
+    return new BsonTuple({ ...this.config, rest }, this.commonConfig);
+  }
+}
+
 // BsonEnum
 
 export type BsonEnumConfig<T extends any[]> = {
@@ -564,13 +611,33 @@ export class BsonOptional<T extends BsonAny> extends BsonAny {
   }
 }
 
+// BsonNot
+
+export type BsonNotConfig = {
+  // Adding a generic type here would be nice but it requires subtraction types
+  // (https://github.com/microsoft/TypeScript/issues/4183) which are not supported
+  builder: BsonAny;
+};
+
+export class BsonNot extends BsonAny {
+  private _isBsonNot!: true;
+
+  constructor(public config: BsonNotConfig, commonConfig?: BsonCommonConfig) {
+    super(commonConfig);
+  }
+
+  _jsonSchema() {
+    return {
+      not: this.config.builder.jsonSchema()
+    };
+  }
+}
+
 // BsonUnion
 
-export type BsonUnionType = "anyOf" | "oneOf";
-
 export type BsonUnionConfig<T extends BsonAny[]> = {
-  type: BsonUnionType;
   builders: T;
+  exclusive?: boolean;
 };
 
 export class BsonUnion<T extends BsonAny[]> extends BsonAny {
@@ -586,15 +653,28 @@ export class BsonUnion<T extends BsonAny[]> extends BsonAny {
   _jsonSchema() {
     const flattenDeep = (builders: BsonAny[]): BsonAny[] =>
       builders.flatMap(builder =>
-        builder instanceof BsonUnion && builder.config.type === this.config.type
+        builder instanceof BsonUnion &&
+        Boolean(builder.config.exclusive) === Boolean(this.config.exclusive)
           ? flattenDeep(builder.config.builders)
           : [builder]
       );
     return {
-      [this.config.type]: flattenDeep(this.config.builders).map(builder =>
-        builder.jsonSchema()
-      )
+      [this.config.exclusive ? "oneOf" : "anyOf"]: flattenDeep(
+        this.config.builders
+      ).map(builder => builder.jsonSchema())
     };
+  }
+
+  private extend(config: Partial<BsonUnionConfig<T>>) {
+    return new BsonUnion({ ...this.config, ...config }, this.commonConfig);
+  }
+
+  exclusive() {
+    return this.extend({ exclusive: true });
+  }
+
+  inclusive() {
+    return this.extend({ exclusive: false });
   }
 }
 
