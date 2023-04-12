@@ -19,8 +19,7 @@ import {
   BsonString,
   BsonTimestamp,
   BsonTuple,
-  BsonUnion,
-  Infer
+  BsonUnion
 } from ".";
 
 export const b = {
@@ -58,19 +57,3 @@ export const b = {
   intersection: <T extends BsonAny[]>(...builders: T) =>
     new BsonIntersection({ builders })
 };
-
-const a = b.object({
-  _id: b.objectId(),
-  name: b.string().optional(),
-  age: b.number().or(b.string()),
-  email: b.string().email(),
-  machin: b.reference("users"),
-  siblings: b.reference("users").array()
-});
-
-type A = Infer<
-  typeof a,
-  { users: typeof a },
-  "",
-  ["siblings.machin", "machin", "machin.machin.siblings"]
->;

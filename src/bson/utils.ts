@@ -25,7 +25,7 @@ import {
 
 export type JsonSchema = Record<string, any>;
 
-// Type inference from BSON schema
+// Document type inference from BSON schema
 
 export type Infer<
   BsonType extends BsonAny,
@@ -127,6 +127,28 @@ type InferBsonIntersection<
   ? Infer<B, Cols, Path, Resolve> &
       InferBsonIntersection<R, Cols, Path, Resolve>
   : unknown;
+
+// Field type inference from BSON schema
+
+export type InferField<Type, Path extends string> = Path extends ""
+  ? Type
+  : Type extends undefined
+  ? undefined
+  : Type extends null
+  ? null
+  : Type extends Array<infer T>
+  ? Array<InferField<T, Path>>
+  : Type extends Record<string, any>
+  ? InferObjectField<Type, Path>
+  : never;
+
+export type InferObjectField<Type, Path extends string> = {
+  [K in keyof Type & string]: Path extends K
+    ? Type[K]
+    : Path extends `${K}.${infer Rest}`
+    ? InferField<Type[K], Rest>
+    : never;
+}[keyof Type & string];
 
 // Utilities
 
