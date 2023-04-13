@@ -1,3 +1,4 @@
-export * from "./utils";
-export * from "./definition";
-export * from "./build";
+export * from "./definition.js";
+export * from "./utils.js";
+export * from "./infer.js";
+export * from "./build.js";

@@ -7,34 +7,35 @@ import {
   TransactionOptions
 } from "mongodb";
 import { keys } from "lodash-es";
-import { Collection, DatabaseOptions, error } from ".";
+import {
+  AnySchemaMap,
+  Collection,
+  CollectionsOf,
+  DatabaseConfig,
+  error
+} from "./index.js";
 
-export class Database<CollectionName extends string = string> {
-  options: DatabaseOptions;
+export class Database<SchemaMap extends AnySchemaMap> {
+  config: DatabaseConfig<SchemaMap>;
   client: MongoClient;
   db: Db;
-  collections: Record<CollectionName, Collection<any>>;
+  collections: CollectionsOf<SchemaMap>;
 
-  static create<CollectionName extends string>(
-    options: DatabaseOptions<CollectionName>
-  ) {
-    return new Database<CollectionName>(options);
-  }
-
-  private constructor(options: DatabaseOptions<CollectionName>) {
-    this.options = options;
-    this.client = new MongoClient(options.url, options.clientOptions);
+  constructor(config: DatabaseConfig<SchemaMap>) {
+    this.config = config;
+    this.client = new MongoClient(config.url, config.clientOptions);
     const name = this.client.options.dbName;
     if (!name)
       throw error("Url must contain a database name", [
         "Database",
         "constructor"
       ]);
-    this.db = this.client.db(name, options.dbOptions);
-    this.collections = {} as any;
-    for (const name of keys(options.collections)) {
-      this.collections[name as CollectionName] = Collection.create(this, name);
+    this.db = this.client.db(name, config.dbOptions);
+    const collections: any = {};
+    for (const name of keys(config.collections)) {
+      collections[name] = new Collection(name, this);
     }
+    this.collections = collections;
   }
 
   get name() {
