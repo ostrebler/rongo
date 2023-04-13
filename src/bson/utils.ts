@@ -1,162 +1,14 @@
-import { Code, ObjectId } from "mongodb";
-import {
-  BsonAny,
-  BsonArray,
-  BsonBinData,
-  BsonBool,
-  BsonDate,
-  BsonEnum,
-  BsonIntersection,
-  BsonJavascript,
-  BsonNot,
-  BsonNull,
-  BsonNumber,
-  BsonObject,
-  BsonObjectId,
-  BsonOptional,
-  BsonRecord,
-  BsonReference,
-  BsonRegex,
-  BsonString,
-  BsonTimestamp,
-  BsonTuple,
-  BsonUnion
-} from ".";
-
-export type JsonSchema = Record<string, any>;
-
-// Document type inference from BSON schema
-
-export type Infer<
-  BsonType extends BsonAny,
-  Cols extends Record<string, BsonAny>,
-  Path extends string,
-  Resolve extends string[]
-> = BsonType extends BsonObjectId
-  ? ObjectId
-  : BsonType extends BsonNull
-  ? null
-  : BsonType extends BsonBool
-  ? boolean
-  : BsonType extends BsonDate
-  ? Date
-  : BsonType extends BsonRegex
-  ? RegExp
-  : BsonType extends BsonTimestamp
-  ? Date
-  : BsonType extends BsonJavascript
-  ? Code
-  : BsonType extends BsonBinData
-  ? Buffer
-  : BsonType extends BsonNumber
-  ? number
-  : BsonType extends BsonString
-  ? string
-  : BsonType extends BsonObject<infer F>
-  ? InferBsonObject<F, Cols, Path, Resolve>
-  : BsonType extends BsonRecord<infer T>
-  ? Record<string, Infer<T, Cols, JoinPath<Path, string>, Resolve>>
-  : BsonType extends BsonArray<infer T>
-  ? Infer<T, Cols, Path, Resolve>[]
-  : BsonType extends BsonTuple<infer T, infer R>
-  ? InferBsonTuple<T, R, Cols, Path, Resolve>
-  : BsonType extends BsonEnum<infer T>
-  ? T[number]
-  : BsonType extends BsonReference<infer T>
-  ? InferBsonReference<T, Cols, Path, Resolve>
-  : BsonType extends BsonOptional<infer T>
-  ? Infer<T, Cols, Path, Resolve> | undefined
-  : BsonType extends BsonNot
-  ? any // would require subtraction types (any ~ T)
-  : BsonType extends BsonUnion<infer T>
-  ? InferBsonUnion<T, Cols, Path, Resolve>
-  : BsonType extends BsonIntersection<infer T>
-  ? InferBsonIntersection<T, Cols, Path, Resolve>
-  : unknown;
-
-type InferBsonObject<
-  F extends Record<string, BsonAny>,
-  Cols extends Record<string, BsonAny>,
-  Path extends string,
-  Resolve extends string[]
-> = AddQuestionMarks<{
-  [K in keyof F & string]: Infer<F[K], Cols, JoinPath<Path, K>, Resolve>;
-}>;
-
-type InferBsonTuple<
-  T extends BsonAny[],
-  R extends BsonAny,
-  Cols extends Record<string, BsonAny>,
-  Path extends string,
-  Resolve extends string[]
-> = T extends [infer B extends BsonAny, ...infer T2 extends BsonAny[]]
-  ? [
-      Infer<B, Cols, Path, Resolve>,
-      ...InferBsonTuple<T2, R, Cols, Path, Resolve>
-    ]
-  : [R] extends [never]
-  ? []
-  : Infer<R, Cols, Path, Resolve>[];
-
-type InferBsonReference<
-  T extends string,
-  Cols extends Record<string, BsonAny>,
-  Path extends string,
-  Resolve extends string[]
-> = PathMatch<Path, Resolve> extends true
-  ? T extends keyof Cols
-    ? Infer<Cols[T], Cols, Path, Resolve>
-    : never
-  : ObjectId;
-
-type InferBsonUnion<
-  T extends BsonAny[],
-  Cols extends Record<string, BsonAny>,
-  Path extends string,
-  Resolve extends string[]
-> = T extends [infer B extends BsonAny, ...infer R extends BsonAny[]]
-  ? Infer<B, Cols, Path, Resolve> | InferBsonUnion<R, Cols, Path, Resolve>
-  : never;
-
-type InferBsonIntersection<
-  T extends BsonAny[],
-  Cols extends Record<string, BsonAny>,
-  Path extends string,
-  Resolve extends string[]
-> = T extends [infer B extends BsonAny, ...infer R extends BsonAny[]]
-  ? Infer<B, Cols, Path, Resolve> &
-      InferBsonIntersection<R, Cols, Path, Resolve>
-  : unknown;
-
-// Field type inference from BSON schema
-
-export type InferField<Type, Path extends string> = Path extends ""
-  ? Type
-  : Type extends undefined
-  ? undefined
-  : Type extends null
-  ? null
-  : Type extends Array<infer T>
-  ? Array<InferField<T, Path>>
-  : Type extends Record<string, any>
-  ? InferObjectField<Type, Path>
-  : never;
-
-export type InferObjectField<Type, Path extends string> = {
-  [K in keyof Type & string]: Path extends K
-    ? Type[K]
-    : Path extends `${K}.${infer Rest}`
-    ? InferField<Type[K], Rest>
-    : never;
-}[keyof Type & string];
-
 // Utilities
 
-type JoinPath<T extends string, U extends string> = `${T}${T extends ""
+export type JoinPath<T extends string, U extends string> = `${T}${T extends ""
   ? ""
   : "."}${U}`;
 
-type PathMatch<
+export type OptionalId<T> = SelfMapped<
+  Omit<T, "_id"> & Partial<Pick<T, "_id" & keyof T>>
+>;
+
+export type PathMatch<
   Path extends string,
   Resolve extends string[]
 > = Resolve extends [infer R, ...infer Rest extends string[]]
@@ -165,7 +17,7 @@ type PathMatch<
     : PathMatch<Path, Rest>
   : false;
 
-type AddQuestionMarks<
+export type AddQuestionMarks<
   T extends object,
   D extends keyof T = DefinedKeys<T>
 > = SelfMapped<Pick<T, D> & Partial<Omit<T, D>>>;

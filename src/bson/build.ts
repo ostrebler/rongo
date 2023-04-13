@@ -4,6 +4,7 @@ import {
   BsonBinData,
   BsonBool,
   BsonDate,
+  BsonDocument,
   BsonEnum,
   BsonIntersection,
   BsonJavascript,
@@ -19,8 +20,10 @@ import {
   BsonString,
   BsonTimestamp,
   BsonTuple,
-  BsonUnion
-} from ".";
+  BsonUnion,
+  InferBsonType
+} from "./index.js";
+import { ObjectId } from "mongodb";
 
 export const b = {
   objectId: () => new BsonObjectId(),
@@ -39,6 +42,8 @@ export const b = {
   string: () => new BsonString(),
   object: <F extends Record<string, BsonAny>>(fields: F) =>
     new BsonObject({ fields }),
+  document: <F extends Record<string, BsonAny>>(fields: F) =>
+    new BsonDocument({ fields }),
   record: <T extends BsonAny>(...args: [RegExp, T] | [T]) =>
     new BsonRecord(
       args.length === 1
@@ -56,4 +61,26 @@ export const b = {
   union: <T extends BsonAny[]>(...builders: T) => new BsonUnion({ builders }),
   intersection: <T extends BsonAny[]>(...builders: T) =>
     new BsonIntersection({ builders })
+};
+
+const a = b.document({
+  name: b.string(),
+  height: b.number(),
+  usr: b.reference("users")
+});
+
+type A = InferBsonType<
+  typeof a,
+  { users: BsonDocument<{ n: BsonNumber }> },
+  ["usr"]
+>;
+
+const u: A = {
+  _id: new ObjectId(),
+  name: "a",
+  height: 1,
+  usr: {
+    _id: new ObjectId(),
+    n: 1
+  }
 };

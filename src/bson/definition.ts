@@ -1,15 +1,15 @@
 import { clone, keys, mapValues } from "lodash-es";
+import { JsonSchema } from "../index.js";
 import {
   emailRegex,
   ipRegex,
   ipv4Regex,
   ipv6Regex,
   isoDateRegex,
-  JsonSchema,
   UnionToTupleString,
   urlRegex,
   uuidRegex
-} from ".";
+} from "./index.js";
 
 export type BsonCommonConfig = {
   title?: string;
@@ -385,6 +385,21 @@ export class BsonObject<F extends Record<string, BsonAny>> extends BsonAny {
 
   passthrough() {
     return this.extend({ strict: false });
+  }
+}
+
+// BsonDocument
+
+export class BsonDocument<
+  F extends Record<string, BsonAny> = any
+> extends BsonObject<{ _id: BsonObjectId } & F> {
+  private _isBsonDocument!: true;
+
+  constructor(config: BsonObjectConfig<F>, commonConfig?: BsonCommonConfig) {
+    super(
+      { ...config, fields: { ...config.fields, _id: new BsonObjectId() } },
+      commonConfig
+    );
   }
 }
 
